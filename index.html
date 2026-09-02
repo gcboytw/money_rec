@@ -100,12 +100,21 @@
       from { transform: translateY(100%); opacity: 0; }
       to { transform: translateY(0); opacity: 1; }
     }
+
+    /* Hide horizontal scrollbar but allow scroll */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
   </style>
 </head>
 <body class="bg-[#09090b] text-zinc-100 h-full flex flex-col font-sans antialiased overflow-hidden">
 
   <!-- Toast Notification Container -->
-  <div id="toast-container" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2 pointer-events-none w-11/12 max-w-sm"></div>
+  <div id="toast-container" class="fixed top-5 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-2 pointer-events-none w-11/12 max-w-sm"></div>
 
   <!-- App Main Frame -->
   <div class="flex-1 flex flex-col max-w-md w-full mx-auto h-full shadow-2xl relative overflow-hidden bg-[#0c0c0e] border-x border-zinc-800/40">
@@ -157,8 +166,8 @@
         </button>
       </div>
 
-      <!-- 2.2 Account & Category Selectors -->
-      <div id="selector-row-standard" class="grid grid-cols-3 gap-2 mb-2.5">
+      <!-- 2.2 Account & Category Selectors (Standard Mode) -->
+      <div id="selector-row-standard" class="grid grid-cols-3 gap-2 mb-2">
         <!-- Account Button -->
         <button onclick="openAccountModal('source')" class="tap-scale flex items-center justify-between px-2.5 py-2 rounded-xl bg-zinc-900/80 hover:bg-zinc-800/80 border border-zinc-700/60 text-left min-w-0 shadow-sm">
           <div class="flex items-center gap-1.5 min-w-0 flex-1">
@@ -196,6 +205,11 @@
           </div>
           <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-zinc-500 flex-shrink-0 ml-1"></i>
         </button>
+      </div>
+
+      <!-- 2.2.1 SubCategory Quick Horizontal Bar (Auto expands if subcategories exist) -->
+      <div id="quick-subcategory-container" class="mb-2.5 overflow-x-auto no-scrollbar flex items-center gap-1.5 py-1">
+        <!-- Dynamically rendered subcategory pills -->
       </div>
 
       <!-- 2.2 Transfer Mode Row (Hidden in standard mode) -->
@@ -453,7 +467,7 @@
         <div class="flex items-center gap-2">
           <button onclick="openNewCategoryForm()" class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold flex items-center gap-1 shadow">
             <i data-lucide="plus" class="w-3.5 h-3.5 stroke-[3]"></i>
-            <span>新增主分類</span>
+            <span>新增分類</span>
           </button>
           <button onclick="closeCategoryManageModal()" class="p-1 rounded-full text-zinc-400 hover:text-zinc-200">
             <i data-lucide="x" class="w-5 h-5"></i>
@@ -474,14 +488,15 @@
     </div>
   </div>
 
-  <!-- Modal 7: Add/Edit Account Form Sheet -->
-  <div id="account-form-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-    <div class="bg-[#18181b] border border-zinc-700/80 rounded-2xl p-5 max-w-sm w-full shadow-2xl space-y-3.5">
+  <!-- Modal 7: Add/Edit Account Form Sheet (z-[70] to guarantee overlay above manage modal) -->
+  <div id="account-form-modal" class="fixed inset-0 z-[70] hidden flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+    <div onclick="event.stopPropagation()" class="bg-[#18181b] border border-zinc-700/80 rounded-2xl p-5 max-w-sm w-full shadow-2xl space-y-3.5 modal-enter">
       <div class="flex items-center justify-between border-b border-zinc-800 pb-2">
-        <h4 id="account-form-title" class="text-sm font-bold text-zinc-100">新增帳戶</h4>
+        <h4 id="form-account-title" class="text-sm font-bold text-zinc-100">新增帳戶</h4>
         <button onclick="closeAccountFormModal()" class="text-zinc-400 hover:text-zinc-200"><i data-lucide="x" class="w-4 h-4"></i></button>
       </div>
 
+      <input type="hidden" id="form-account-id" value="">
       <div class="space-y-2.5">
         <div>
           <label class="text-[11px] font-semibold text-zinc-400 block mb-1">帳戶群組</label>
@@ -496,11 +511,14 @@
           <input type="text" id="form-account-name" placeholder="例如：台新 Richart" class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none">
         </div>
         <div>
-          <label class="text-[11px] font-semibold text-zinc-400 block mb-1">初始餘額 (NT$)</label>
-          <input type="number" id="form-account-balance" placeholder="0" class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none">
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-[11px] font-semibold text-zinc-400 block">初始餘額 (NT$)</label>
+            <span class="text-[10px] text-amber-400/80 font-mono">可隨時修改初始本金</span>
+          </div>
+          <input type="number" id="form-account-balance" placeholder="0" class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-3 py-2 text-xs font-mono text-zinc-200 focus:outline-none">
         </div>
         <div>
-          <label class="text-[11px] font-semibold text-zinc-400 block mb-1">圖示</label>
+          <label class="text-[11px] font-semibold text-zinc-400 block mb-1">選擇圖示</label>
           <div class="flex gap-2" id="form-account-icons">
             <label class="flex items-center gap-1.5 p-2 bg-zinc-900 rounded-xl border border-zinc-700 cursor-pointer text-xs">
               <input type="radio" name="acc-icon" value="asset/account-dollar.svg" checked>
@@ -518,41 +536,145 @@
         </div>
       </div>
 
-      <div class="flex items-center justify-end gap-2 pt-2">
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-zinc-800">
         <button onclick="closeAccountFormModal()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-zinc-800 text-zinc-300">取消</button>
-        <button onclick="saveAccountForm()" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-zinc-950 shadow">儲存</button>
+        <button onclick="saveAccountForm()" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-zinc-950 shadow">儲存</button>
       </div>
     </div>
   </div>
 
-  <!-- Modal 8: Add/Edit Category Form Sheet -->
-  <div id="category-form-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-    <div class="bg-[#18181b] border border-zinc-700/80 rounded-2xl p-5 max-w-sm w-full shadow-2xl space-y-3.5">
+  <!-- Modal 8: Add/Edit Category Form Sheet (z-[70]) -->
+  <div id="category-form-modal" class="fixed inset-0 z-[70] hidden flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+    <div onclick="event.stopPropagation()" class="bg-[#18181b] border border-zinc-700/80 rounded-2xl p-5 max-w-sm w-full shadow-2xl space-y-3.5 modal-enter">
       <div class="flex items-center justify-between border-b border-zinc-800 pb-2">
         <h4 id="category-form-title" class="text-sm font-bold text-zinc-100">新增分類</h4>
         <button onclick="closeCategoryFormModal()" class="text-zinc-400 hover:text-zinc-200"><i data-lucide="x" class="w-4 h-4"></i></button>
       </div>
 
-      <input type="hidden" id="form-cat-parent-id" value="">
+      <input type="hidden" id="form-cat-id" value="">
+
+      <!-- Category Level Switcher (Main vs Sub) -->
+      <div id="form-cat-level-row" class="bg-zinc-900 p-1 rounded-xl flex items-center border border-zinc-800">
+        <button type="button" id="form-level-parent" onclick="switchCategoryFormLevel('parent')" class="flex-1 py-1 rounded-lg text-xs font-bold bg-amber-500 text-zinc-950">
+          主分類
+        </button>
+        <button type="button" id="form-level-sub" onclick="switchCategoryFormLevel('sub')" class="flex-1 py-1 rounded-lg text-xs font-bold text-zinc-400">
+          子分類
+        </button>
+      </div>
+
       <div class="space-y-2.5">
+        <!-- Parent Category Selector (Shown only when creating/editing a subcategory) -->
+        <div id="form-cat-parent-select-wrap" class="hidden">
+          <label class="text-[11px] font-semibold text-zinc-400 block mb-1">所屬主分類</label>
+          <select id="form-cat-parent-id" class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none"></select>
+        </div>
+
         <div>
           <label class="text-[11px] font-semibold text-zinc-400 block mb-1">分類名稱</label>
-          <input type="text" id="form-cat-name" placeholder="例如：點心 / 裝備" class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none">
+          <input type="text" id="form-cat-name" placeholder="例如：早餐 / 裝備" class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none">
         </div>
         <div>
           <label class="text-[11px] font-semibold text-zinc-400 block mb-1">選擇圖示</label>
-          <div id="form-cat-icon-grid" class="grid grid-cols-6 gap-2 max-h-32 overflow-y-auto p-1 bg-zinc-900 rounded-xl border border-zinc-800"></div>
+          <div id="form-cat-icon-grid" class="grid grid-cols-6 gap-2 max-h-36 overflow-y-auto p-1 bg-zinc-900 rounded-xl border border-zinc-800"></div>
         </div>
       </div>
 
-      <div class="flex items-center justify-end gap-2 pt-2">
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-zinc-800">
         <button onclick="closeCategoryFormModal()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-zinc-800 text-zinc-300">取消</button>
-        <button onclick="saveCategoryForm()" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-zinc-950 shadow">儲存</button>
+        <button onclick="saveCategoryForm()" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-zinc-950 shadow">儲存</button>
       </div>
     </div>
   </div>
 
-  <!-- Modal 9: Reports & Statistics Modal -->
+  <!-- Modal 9: Edit Transaction Modal (流水帳項目修改, z-[70]) -->
+  <div id="edit-record-modal" class="fixed inset-0 z-[70] hidden flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+    <div onclick="event.stopPropagation()" class="bg-[#18181b] border border-zinc-700/80 rounded-3xl p-5 max-w-sm w-full shadow-2xl space-y-3.5 modal-enter">
+      <div class="flex items-center justify-between border-b border-zinc-800 pb-2.5">
+        <h4 class="text-sm font-bold text-zinc-100 flex items-center gap-1.5">
+          <i data-lucide="edit-2" class="w-4 h-4 text-amber-400"></i>
+          編輯流水帳明細
+        </h4>
+        <button onclick="closeEditRecordModal()" class="text-zinc-400 hover:text-zinc-200">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <input type="hidden" id="edit-record-id" value="">
+      
+      <!-- Type Switcher in Edit Modal -->
+      <div class="bg-zinc-900 p-1 rounded-xl flex items-center border border-zinc-800">
+        <button id="edit-tab-expense" onclick="switchEditRecordType('expense')" class="flex-1 py-1 rounded-lg text-xs font-bold bg-amber-500 text-zinc-950">
+          支出
+        </button>
+        <button id="edit-tab-income" onclick="switchEditRecordType('income')" class="flex-1 py-1 rounded-lg text-xs font-bold text-zinc-400">
+          收入
+        </button>
+        <button id="edit-tab-transfer" onclick="switchEditRecordType('transfer')" class="flex-1 py-1 rounded-lg text-xs font-bold text-zinc-400">
+          轉帳
+        </button>
+      </div>
+
+      <div class="space-y-2.5">
+        <!-- Amount -->
+        <div>
+          <label class="text-[11px] font-semibold text-zinc-400 block mb-1">金額 (NT$)</label>
+          <input type="number" id="edit-record-amount" class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-3 py-2 text-base font-mono font-bold text-amber-400 focus:outline-none" placeholder="0">
+        </div>
+
+        <!-- Date -->
+        <div>
+          <label class="text-[11px] font-semibold text-zinc-400 block mb-1">交易日期</label>
+          <input type="date" id="edit-record-date" class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none">
+        </div>
+
+        <!-- Standard Fields: Account + ParentCategory + SubCategory -->
+        <div id="edit-fields-standard" class="space-y-2.5">
+          <div>
+            <label class="text-[11px] font-semibold text-zinc-400 block mb-1">帳戶</label>
+            <select id="edit-record-account" class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none"></select>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[11px] font-semibold text-zinc-400 block mb-1">主分類</label>
+              <select id="edit-record-parent-cat" onchange="onEditParentCatChanged(this.value)" class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-2.5 py-2 text-xs text-zinc-200 focus:outline-none"></select>
+            </div>
+            <div>
+              <label class="text-[11px] font-semibold text-zinc-400 block mb-1">子分類</label>
+              <select id="edit-record-sub-cat" class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-2.5 py-2 text-xs text-zinc-200 focus:outline-none"></select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Transfer Fields: From Account + To Account -->
+        <div id="edit-fields-transfer" class="hidden space-y-2.5">
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[11px] font-semibold text-zinc-400 block mb-1">轉出帳戶</label>
+              <select id="edit-record-from-account" class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-2.5 py-2 text-xs text-zinc-200 focus:outline-none"></select>
+            </div>
+            <div>
+              <label class="text-[11px] font-semibold text-zinc-400 block mb-1">轉入帳戶</label>
+              <select id="edit-record-to-account" class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-2.5 py-2 text-xs text-zinc-200 focus:outline-none"></select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Note -->
+        <div>
+          <label class="text-[11px] font-semibold text-zinc-400 block mb-1">備註</label>
+          <input type="text" id="edit-record-note" placeholder="可填寫備註..." class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none">
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-zinc-800">
+        <button onclick="closeEditRecordModal()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-zinc-800 text-zinc-300">取消</button>
+        <button onclick="saveEditRecord()" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-zinc-950 shadow">儲存修改</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 10: Reports & Statistics Modal -->
   <div id="reports-modal" class="fixed inset-0 z-50 hidden flex items-end justify-center bg-black/60 backdrop-blur-sm">
     <div onclick="event.stopPropagation()" class="modal-enter w-full max-w-md bg-[#16161a] rounded-t-3xl border-t border-zinc-700/80 p-4 pb-[max(env(safe-area-inset-bottom),20px)] shadow-2xl flex flex-col max-h-[85vh]">
       <div class="flex items-center justify-between pb-3 border-b border-zinc-800">
@@ -591,7 +713,7 @@
     </div>
   </div>
 
-  <!-- Modal 10: Backup & Export Modal -->
+  <!-- Modal 11: Backup & Export Modal -->
   <div id="backup-modal" class="fixed inset-0 z-50 hidden flex items-end justify-center bg-black/60 backdrop-blur-sm">
     <div onclick="event.stopPropagation()" class="modal-enter w-full max-w-md bg-[#16161a] rounded-t-3xl border-t border-zinc-700/80 p-4 pb-[max(env(safe-area-inset-bottom),20px)] shadow-2xl flex flex-col max-h-[80vh]">
       <div class="flex items-center justify-between pb-3 border-b border-zinc-800">
@@ -627,15 +749,15 @@
     </div>
   </div>
 
-  <!-- Delete Confirm Modal -->
-  <div id="confirm-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/65 backdrop-blur-sm p-4">
-    <div class="bg-[#18181b] border border-zinc-700/80 rounded-2xl p-5 max-w-xs w-full shadow-2xl space-y-3">
+  <!-- Delete Confirm Modal (z-[80]) -->
+  <div id="confirm-modal" class="fixed inset-0 z-[80] hidden flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+    <div onclick="event.stopPropagation()" class="bg-[#18181b] border border-zinc-700/80 rounded-2xl p-5 max-w-xs w-full shadow-2xl space-y-3 modal-enter">
       <div class="flex items-center gap-2 text-red-400 font-bold text-base">
         <i data-lucide="alert-triangle" class="w-5 h-5"></i>
         確認刪除
       </div>
       <p id="confirm-modal-msg" class="text-xs text-zinc-300">確定要刪除這筆資料嗎？此動作無法復原。</p>
-      <div class="flex items-center justify-end gap-2 pt-2">
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-zinc-800">
         <button onclick="closeConfirmModal()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-zinc-800 text-zinc-300">取消</button>
         <button id="btn-confirm-delete" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-600 text-white shadow-lg shadow-red-600/30">確定刪除</button>
       </div>
@@ -812,7 +934,9 @@
       allAccounts: [],
       todayRecords: [],
       categoryManageType: 'expense',
-      chartInstance: null
+      categoryFormLevel: 'parent', // 'parent' | 'sub'
+      chartInstance: null,
+      editRecordType: 'expense'
     };
 
     function getTodayString() {
@@ -826,13 +950,9 @@
     /**
      * Date & Week Helper Functions
      */
-    const WEEKDAY_NAMES = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
-
-    // Get 7 days (Monday to Sunday) for the given date string (YYYY-MM-DD)
     function getWeekDaysForDate(dateStr) {
       const target = new Date(dateStr + 'T00:00:00');
-      const dayOfWeek = target.getDay(); // 0 is Sunday, 1 is Monday ... 6 is Saturday
-      // Calculate distance to Monday
+      const dayOfWeek = target.getDay();
       const distToMonday = (dayOfWeek + 6) % 7;
       const monday = new Date(target);
       monday.setDate(target.getDate() - distToMonday);
@@ -864,6 +984,7 @@
         await loadAllData();
         setupDefaultSelections();
         renderWeekStripCalendar();
+        renderSubCategoryQuickPills();
         await renderTodayRecords();
         lucide.createIcons();
       } catch (err) {
@@ -944,15 +1065,12 @@
       const pickerInput = document.getElementById('input-date-picker');
       const todayStr = getTodayString();
 
-      // Update date picker max value
       pickerInput.value = state.selectedDate;
       pickerInput.max = todayStr;
 
-      // Update Title (Year & Month of Selected Date)
       const selectedD = new Date(state.selectedDate + 'T00:00:00');
       titleEl.textContent = `${selectedD.getFullYear()}年 ${selectedD.getMonth() + 1}月`;
 
-      // Update list header label
       const listLabel = document.getElementById('list-date-label');
       if (state.selectedDate === todayStr) {
         listLabel.textContent = '本日明細';
@@ -960,10 +1078,7 @@
         listLabel.textContent = `${selectedD.getMonth() + 1}月${selectedD.getDate()}日 明細`;
       }
 
-      // 7 Days of the week
       const weekDays = getWeekDaysForDate(state.selectedDate);
-
-      // Check which days in the week have records for dot indicators
       const startOfWeek = weekDays[0].dateStr;
       const endOfWeek = weekDays[6].dateStr;
       const weekRecords = await db.records.where('date').between(startOfWeek, endOfWeek, true, true).toArray();
@@ -975,10 +1090,8 @@
         const isFuture = item.dateStr > todayStr;
         const hasRecord = recordDatesSet.has(item.dateStr);
 
-        // Day Title Style (週一、週二...)
         const titleClass = isSelected ? 'text-zinc-100 font-extrabold' : 'text-zinc-400 font-bold';
 
-        // Day Number Background & Text
         let numBoxClass = 'w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm mx-auto transition-all';
         if (isSelected) {
           numBoxClass += ' bg-amber-500 text-zinc-950 shadow-md shadow-amber-500/20 font-black scale-105';
@@ -990,7 +1103,6 @@
           numBoxClass += ' text-zinc-300 hover:text-zinc-100';
         }
 
-        // Dot indicator
         let dotHtml = '<div class="w-1.5 h-1.5 mt-1 rounded-full mx-auto opacity-0"></div>';
         if (hasRecord) {
           dotHtml = `<div class="w-1.5 h-1.5 mt-1 rounded-full bg-amber-500 mx-auto shadow-sm"></div>`;
@@ -1039,6 +1151,7 @@
       const traBtn = document.getElementById('tab-transfer');
       const stdRow = document.getElementById('selector-row-standard');
       const traRow = document.getElementById('selector-row-transfer');
+      const quickSubCat = document.getElementById('quick-subcategory-container');
       const typeSymbol = document.getElementById('card-type-symbol');
       const amountDisp = document.getElementById('card-display-amount');
       const submitBtn = document.getElementById('btn-quick-submit');
@@ -1050,6 +1163,7 @@
       if (type === 'expense') {
         expBtn.className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all bg-amber-500 text-zinc-950 shadow-md';
         stdRow.classList.remove('hidden');
+        quickSubCat.classList.remove('hidden');
         traRow.classList.add('hidden');
         typeSymbol.className = 'text-amber-400 font-bold text-xs';
         typeSymbol.textContent = 'NT$';
@@ -1060,10 +1174,13 @@
         const expCats = state.allCategories.filter(c => c.type === 'expense' && c.parentId === null && !c.isArchived);
         if (!state.selectedParentCategory || state.selectedParentCategory.type !== 'expense') {
           if (expCats.length > 0) setSelectedParentCategory(expCats[0]);
+        } else {
+          renderSubCategoryQuickPills();
         }
       } else if (type === 'income') {
         incBtn.className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all bg-emerald-500 text-zinc-950 shadow-md';
         stdRow.classList.remove('hidden');
+        quickSubCat.classList.remove('hidden');
         traRow.classList.add('hidden');
         typeSymbol.className = 'text-emerald-400 font-bold text-xs';
         typeSymbol.textContent = 'NT$';
@@ -1074,10 +1191,13 @@
         const incCats = state.allCategories.filter(c => c.type === 'income' && c.parentId === null && !c.isArchived);
         if (!state.selectedParentCategory || state.selectedParentCategory.type !== 'income') {
           if (incCats.length > 0) setSelectedParentCategory(incCats[0]);
+        } else {
+          renderSubCategoryQuickPills();
         }
       } else if (type === 'transfer') {
         traBtn.className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all bg-blue-500 text-zinc-950 shadow-md';
         stdRow.classList.add('hidden');
+        quickSubCat.classList.add('hidden');
         traRow.classList.remove('hidden');
         traRow.classList.add('grid');
         typeSymbol.className = 'text-blue-400 font-bold text-xs';
@@ -1089,8 +1209,44 @@
     }
 
     /**
-     * Category Modal & Selection
+     * Category & SubCategory Quick Selection Bar
      */
+    function renderSubCategoryQuickPills() {
+      const container = document.getElementById('quick-subcategory-container');
+      if (state.currentType === 'transfer' || !state.selectedParentCategory) {
+        container.innerHTML = '';
+        return;
+      }
+
+      const subCats = state.allCategories.filter(
+        c => c.parentId === state.selectedParentCategory.id && !c.isArchived
+      );
+
+      if (subCats.length === 0) {
+        container.innerHTML = '';
+        return;
+      }
+
+      const isNoneSelected = !state.selectedSubCategory;
+      let html = `
+        <button onclick="pickSubCategory(null)" class="tap-scale flex-shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all ${isNoneSelected ? 'bg-amber-500/20 border-amber-500 text-amber-300' : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200'}">
+          全部 / 無
+        </button>
+      `;
+
+      for (const sub of subCats) {
+        const isSelected = state.selectedSubCategory && state.selectedSubCategory.id === sub.id;
+        html += `
+          <button onclick="pickSubCategory(${sub.id})" class="tap-scale flex-shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all ${isSelected ? 'bg-amber-500/20 border-amber-500 text-amber-300' : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200'}">
+            <img src="${sub.icon}" class="w-3.5 h-3.5 object-contain">
+            <span>${sub.name}</span>
+          </button>
+        `;
+      }
+
+      container.innerHTML = html;
+    }
+
     function setSelectedParentCategory(cat) {
       state.selectedParentCategory = cat;
       state.selectedSubCategory = null;
@@ -1099,6 +1255,8 @@
       
       document.getElementById('selected-subcategory-name').textContent = '無 (選填)';
       document.getElementById('selected-subcategory-icon').src = cat.icon;
+
+      renderSubCategoryQuickPills();
     }
 
     function setSelectedSubCategory(subCat) {
@@ -1110,6 +1268,7 @@
         document.getElementById('selected-subcategory-name').textContent = '無 (選填)';
         document.getElementById('selected-subcategory-icon').src = state.selectedParentCategory?.icon || 'asset/categories-food.svg';
       }
+      renderSubCategoryQuickPills();
     }
 
     function openCategoryModal() {
@@ -1147,9 +1306,6 @@
       document.getElementById('category-modal').classList.add('hidden');
     }
 
-    /**
-     * SubCategory Modal & Selection
-     */
     function openSubCategoryModal() {
       if (!state.selectedParentCategory) {
         showToast('請先選取主分類', 'info');
@@ -1164,7 +1320,7 @@
       );
 
       let html = `
-        <button onclick="pickSubCategory(null)" class="tap-scale w-full flex items-center justify-between p-3 rounded-xl border ${!state.selectedSubCategory ? 'bg-amber-500/20 border-amber-500 text-amber-300' : 'bg-zinc-900 border-zinc-800 text-zinc-300'}">
+        <button onclick="pickSubCategory(null); closeSubCategoryModal();" class="tap-scale w-full flex items-center justify-between p-3 rounded-xl border ${!state.selectedSubCategory ? 'bg-amber-500/20 border-amber-500 text-amber-300' : 'bg-zinc-900 border-zinc-800 text-zinc-300'}">
           <span class="text-xs font-semibold">不指定子分類 (歸在主分類)</span>
           ${!state.selectedSubCategory ? '<i data-lucide="check" class="w-4 h-4 text-amber-400"></i>' : ''}
         </button>
@@ -1179,7 +1335,7 @@
             : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800';
 
           return `
-            <button onclick="pickSubCategory(${sub.id})" class="tap-scale flex items-center gap-2 p-2.5 rounded-xl border ${activeClass}">
+            <button onclick="pickSubCategory(${sub.id}); closeSubCategoryModal();" class="tap-scale flex items-center gap-2 p-2.5 rounded-xl border ${activeClass}">
               <img src="${sub.icon}" class="w-4 h-4 object-contain">
               <span class="text-xs font-semibold truncate flex-1 text-left">${sub.name}</span>
               ${isSelected ? '<i data-lucide="check" class="w-3.5 h-3.5 text-amber-400"></i>' : ''}
@@ -1207,7 +1363,6 @@
         const sub = state.allCategories.find(c => c.id === subId);
         if (sub) setSelectedSubCategory(sub);
       }
-      closeSubCategoryModal();
     }
 
     function closeSubCategoryModal() {
@@ -1344,7 +1499,7 @@
 
     function evaluateExpression(expr) {
       try {
-        let sanitized = expr.replace(/[^0-9\+\-\*\/\.]/g, '');
+        let sanitized = String(expr).replace(/[^0-9\+\-\*\/\.]/g, '');
         while (['+', '-', '*', '/'].includes(sanitized.slice(-1))) {
           sanitized = sanitized.slice(0, -1);
         }
@@ -1529,13 +1684,19 @@
                 </div>
               </div>
 
-              <div class="flex items-center gap-2 ml-2">
-                <div class="text-right">
+              <div class="flex items-center gap-1.5 ml-2">
+                <div class="text-right mr-1">
                   <div class="text-xs font-mono font-bold text-blue-400">
                     NT$ ${rec.amount.toLocaleString()}
                   </div>
                 </div>
-                <button onclick="confirmDeleteRecord(${rec.id})" class="p-1 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-800">
+                <button onclick="openEditRecordModal(${rec.id})" title="修改" class="p-1.5 rounded-lg text-zinc-400 hover:text-amber-400 hover:bg-zinc-800 transition-colors">
+                  <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                </button>
+                <button onclick="duplicateRecord(${rec.id})" title="複製" class="p-1.5 rounded-lg text-zinc-400 hover:text-blue-400 hover:bg-zinc-800 transition-colors">
+                  <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                </button>
+                <button onclick="confirmDeleteRecord(${rec.id})" title="刪除" class="p-1.5 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-zinc-800 transition-colors">
                   <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                 </button>
               </div>
@@ -1568,13 +1729,19 @@
               </div>
             </div>
 
-            <div class="flex items-center gap-2 ml-2">
-              <div class="text-right">
+            <div class="flex items-center gap-1.5 ml-2">
+              <div class="text-right mr-1">
                 <div class="text-xs font-mono font-bold ${amountColor}">
                   ${sign}NT$ ${rec.amount.toLocaleString()}
                 </div>
               </div>
-              <button onclick="confirmDeleteRecord(${rec.id})" class="p-1 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-800">
+              <button onclick="openEditRecordModal(${rec.id})" title="修改" class="p-1.5 rounded-lg text-zinc-400 hover:text-amber-400 hover:bg-zinc-800 transition-colors">
+                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+              </button>
+              <button onclick="duplicateRecord(${rec.id})" title="複製" class="p-1.5 rounded-lg text-zinc-400 hover:text-blue-400 hover:bg-zinc-800 transition-colors">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+              </button>
+              <button onclick="confirmDeleteRecord(${rec.id})" title="刪除" class="p-1.5 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-zinc-800 transition-colors">
                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
               </button>
             </div>
@@ -1583,6 +1750,195 @@
       }).join('');
 
       lucide.createIcons();
+    }
+
+    /**
+     * Edit Record Logic (流水帳修改)
+     */
+    async function openEditRecordModal(recordId) {
+      const rec = await db.records.get(recordId);
+      if (!rec) return;
+
+      document.getElementById('edit-record-id').value = rec.id;
+      document.getElementById('edit-record-amount').value = rec.amount;
+      document.getElementById('edit-record-date').value = rec.date;
+      document.getElementById('edit-record-note').value = rec.note || '';
+
+      switchEditRecordType(rec.type, false);
+
+      // Populate Account options
+      const accSelect = document.getElementById('edit-record-account');
+      const fromAccSelect = document.getElementById('edit-record-from-account');
+      const toAccSelect = document.getElementById('edit-record-to-account');
+
+      const accOptions = state.allAccounts.map(a => `<option value="${a.id}">${a.name} (${a.groupName})</option>`).join('');
+      accSelect.innerHTML = accOptions;
+      fromAccSelect.innerHTML = accOptions;
+      toAccSelect.innerHTML = accOptions;
+
+      if (rec.type === 'transfer') {
+        fromAccSelect.value = rec.accountId;
+        toAccSelect.value = rec.targetAccountId;
+      } else {
+        accSelect.value = rec.accountId;
+
+        // Populate Category Options
+        const parentSelect = document.getElementById('edit-record-parent-cat');
+        const validCats = state.allCategories.filter(c => c.type === rec.type && c.parentId === null);
+        parentSelect.innerHTML = validCats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        parentSelect.value = rec.parentCategoryId;
+
+        onEditParentCatChanged(rec.parentCategoryId, rec.subCategoryId);
+      }
+
+      document.getElementById('edit-record-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function switchEditRecordType(type, resetCats = true) {
+      state.editRecordType = type;
+      const expTab = document.getElementById('edit-tab-expense');
+      const incTab = document.getElementById('edit-tab-income');
+      const traTab = document.getElementById('edit-tab-transfer');
+      const stdFields = document.getElementById('edit-fields-standard');
+      const traFields = document.getElementById('edit-fields-transfer');
+
+      expTab.className = 'flex-1 py-1 rounded-lg text-xs font-bold text-zinc-400';
+      incTab.className = 'flex-1 py-1 rounded-lg text-xs font-bold text-zinc-400';
+      traTab.className = 'flex-1 py-1 rounded-lg text-xs font-bold text-zinc-400';
+
+      if (type === 'expense') {
+        expTab.className = 'flex-1 py-1 rounded-lg text-xs font-bold bg-amber-500 text-zinc-950';
+        stdFields.classList.remove('hidden');
+        traFields.classList.add('hidden');
+      } else if (type === 'income') {
+        incTab.className = 'flex-1 py-1 rounded-lg text-xs font-bold bg-emerald-500 text-zinc-950';
+        stdFields.classList.remove('hidden');
+        traFields.classList.add('hidden');
+      } else if (type === 'transfer') {
+        traTab.className = 'flex-1 py-1 rounded-lg text-xs font-bold bg-blue-500 text-zinc-950';
+        stdFields.classList.add('hidden');
+        traFields.classList.remove('hidden');
+      }
+
+      if (resetCats && (type === 'expense' || type === 'income')) {
+        const parentSelect = document.getElementById('edit-record-parent-cat');
+        const validCats = state.allCategories.filter(c => c.type === type && c.parentId === null);
+        parentSelect.innerHTML = validCats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        if (validCats.length > 0) {
+          parentSelect.value = validCats[0].id;
+          onEditParentCatChanged(validCats[0].id);
+        }
+      }
+    }
+
+    function onEditParentCatChanged(parentId, targetSubCatId = null) {
+      const subSelect = document.getElementById('edit-record-sub-cat');
+      const pId = parseInt(parentId, 10);
+      const subCats = state.allCategories.filter(c => c.parentId === pId);
+
+      let opts = '<option value="">無子分類</option>';
+      for (const sub of subCats) {
+        opts += `<option value="${sub.id}">${sub.name}</option>`;
+      }
+      subSelect.innerHTML = opts;
+      if (targetSubCatId) {
+        subSelect.value = targetSubCatId;
+      }
+    }
+
+    function closeEditRecordModal() {
+      document.getElementById('edit-record-modal').classList.add('hidden');
+    }
+
+    async function saveEditRecord() {
+      const recIdStr = document.getElementById('edit-record-id').value;
+      const recId = parseInt(recIdStr, 10);
+      const amount = parseFloat(document.getElementById('edit-record-amount').value);
+      const date = document.getElementById('edit-record-date').value;
+      const note = document.getElementById('edit-record-note').value.trim();
+
+      if (isNaN(amount) || amount <= 0) {
+        showToast('金額必須大於 0', 'error');
+        return;
+      }
+      if (!date) {
+        showToast('請選取日期', 'error');
+        return;
+      }
+
+      if (state.editRecordType === 'transfer') {
+        const fromAccId = parseInt(document.getElementById('edit-record-from-account').value, 10);
+        const toAccId = parseInt(document.getElementById('edit-record-to-account').value, 10);
+
+        if (fromAccId === toAccId) {
+          showToast('轉出與轉入帳戶不可相同', 'error');
+          return;
+        }
+
+        await db.records.update(recId, {
+          type: 'transfer',
+          amount: amount,
+          date: date,
+          accountId: fromAccId,
+          targetAccountId: toAccId,
+          parentCategoryId: null,
+          subCategoryId: null,
+          note: note
+        });
+      } else {
+        const accId = parseInt(document.getElementById('edit-record-account').value, 10);
+        const parentCatId = parseInt(document.getElementById('edit-record-parent-cat').value, 10);
+        const subCatVal = document.getElementById('edit-record-sub-cat').value;
+        const subCatId = subCatVal ? parseInt(subCatVal, 10) : null;
+
+        if (!parentCatId) {
+          showToast('請選取主分類', 'error');
+          return;
+        }
+
+        await db.records.update(recId, {
+          type: state.editRecordType,
+          amount: amount,
+          date: date,
+          accountId: accId,
+          targetAccountId: null,
+          parentCategoryId: parentCatId,
+          subCategoryId: subCatId,
+          note: note
+        });
+      }
+
+      showToast('流水帳已成功更新', 'success');
+      closeEditRecordModal();
+      await renderWeekStripCalendar();
+      await renderTodayRecords();
+    }
+
+    /**
+     * Duplicate Record
+     */
+    async function duplicateRecord(recordId) {
+      const rec = await db.records.get(recordId);
+      if (!rec) return;
+
+      const newRec = {
+        type: rec.type,
+        amount: rec.amount,
+        parentCategoryId: rec.parentCategoryId,
+        subCategoryId: rec.subCategoryId,
+        accountId: rec.accountId,
+        targetAccountId: rec.targetAccountId,
+        date: state.selectedDate,
+        note: rec.note ? `${rec.note} (複製)` : '複製項目',
+        recurringId: null,
+        createdAt: Date.now()
+      };
+
+      await db.records.add(newRec);
+      showToast('已複製紀錄至本日', 'success');
+      await renderWeekStripCalendar();
+      await renderTodayRecords();
     }
 
     /**
@@ -1615,18 +1971,24 @@
 
                 return `
                   <div class="flex items-center justify-between p-2.5 rounded-xl bg-zinc-800/80 border border-zinc-700/60 ${acc.isArchived ? 'opacity-50' : ''}">
-                    <div class="flex items-center gap-2.5">
-                      <img src="${acc.icon}" class="w-5 h-5 object-contain">
-                      <div>
-                        <div class="text-xs font-bold text-zinc-200 flex items-center gap-1.5">
-                          ${acc.name}
+                    <div class="flex items-center gap-2.5 min-w-0 flex-1">
+                      <img src="${acc.icon}" class="w-5 h-5 object-contain flex-shrink-0">
+                      <div class="min-w-0 flex-1">
+                        <div class="text-xs font-bold text-zinc-200 flex items-center gap-1.5 truncate">
+                          <span>${acc.name}</span>
                           ${acc.isDefault ? '<span class="text-[9px] px-1 bg-amber-500/20 text-amber-400 rounded">預設</span>' : ''}
                           ${acc.isArchived ? '<span class="text-[9px] px-1 bg-zinc-700 text-zinc-400 rounded">已封存</span>' : ''}
                         </div>
-                        <div class="text-[10px] text-zinc-400 font-mono mt-0.5">當前餘額: NT$ ${bal.toLocaleString()}</div>
+                        <div class="text-[10px] text-zinc-400 font-mono mt-0.5">
+                          初始: NT$ ${(acc.initialBalance || 0).toLocaleString()} ｜ 當前餘額: <span class="font-bold text-zinc-200">NT$ ${bal.toLocaleString()}</span>
+                        </div>
                       </div>
                     </div>
-                    <div class="flex items-center gap-1">
+                    <div class="flex items-center gap-1.5 ml-2 flex-shrink-0">
+                      <button onclick="openEditAccountForm(${acc.id})" class="text-[10px] px-2 py-1 rounded bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 flex items-center gap-1 font-semibold">
+                        <i data-lucide="edit-3" class="w-3 h-3"></i>
+                        <span>編輯</span>
+                      </button>
                       <button onclick="toggleArchiveAccount(${acc.id})" class="text-[10px] px-2 py-1 rounded bg-zinc-700 text-zinc-300 hover:bg-zinc-600">
                         ${acc.isArchived ? '解封' : '封存'}
                       </button>
@@ -1641,6 +2003,7 @@
 
       container.innerHTML = html;
       document.getElementById('account-manage-modal').classList.remove('hidden');
+      lucide.createIcons();
     }
 
     function closeAccountManageModal() {
@@ -1664,8 +2027,36 @@
     }
 
     function openNewAccountForm() {
+      document.getElementById('form-account-id').value = '';
+      document.getElementById('form-account-title').textContent = '新增帳戶';
+      document.getElementById('form-account-group').value = '現金';
       document.getElementById('form-account-name').value = '';
       document.getElementById('form-account-balance').value = '0';
+      
+      const radios = document.querySelectorAll('input[name="acc-icon"]');
+      radios.forEach((r, idx) => {
+        r.checked = (idx === 0);
+      });
+
+      document.getElementById('account-form-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function openEditAccountForm(accId) {
+      const acc = state.allAccounts.find(a => a.id == accId);
+      if (!acc) return;
+
+      document.getElementById('form-account-id').value = acc.id;
+      document.getElementById('form-account-title').textContent = `編輯帳戶 - ${acc.name}`;
+      document.getElementById('form-account-group').value = acc.groupName;
+      document.getElementById('form-account-name').value = acc.name;
+      document.getElementById('form-account-balance').value = acc.initialBalance !== undefined ? acc.initialBalance : 0;
+
+      const radios = document.querySelectorAll('input[name="acc-icon"]');
+      radios.forEach(r => {
+        r.checked = (r.value === acc.icon);
+      });
+
       document.getElementById('account-form-modal').classList.remove('hidden');
       lucide.createIcons();
     }
@@ -1675,6 +2066,7 @@
     }
 
     async function saveAccountForm() {
+      const accIdStr = document.getElementById('form-account-id').value;
       const name = document.getElementById('form-account-name').value.trim();
       const groupName = document.getElementById('form-account-group').value;
       const bal = parseFloat(document.getElementById('form-account-balance').value) || 0;
@@ -1685,17 +2077,32 @@
         return;
       }
 
-      await db.accounts.add({
-        name,
-        groupName,
-        icon,
-        initialBalance: bal,
-        isDefault: false,
-        isArchived: false
-      });
+      if (accIdStr) {
+        const accId = parseInt(accIdStr, 10);
+        await db.accounts.update(accId, {
+          name,
+          groupName,
+          icon,
+          initialBalance: bal
+        });
+        showToast(`已成功修改帳戶「${name}」與初始值`, 'success');
+      } else {
+        await db.accounts.add({
+          name,
+          groupName,
+          icon,
+          initialBalance: bal,
+          isDefault: false,
+          isArchived: false
+        });
+        showToast(`已成功新增帳戶「${name}」`, 'success');
+      }
 
       await loadAllData();
-      showToast(`已成功新增帳戶「${name}」`, 'success');
+      if (state.selectedAccount && state.selectedAccount.id == accIdStr) {
+        const updated = state.allAccounts.find(a => a.id == accIdStr);
+        if (updated) setSelectedAccount(updated);
+      }
       closeAccountFormModal();
       await openAccountManageModal();
     }
@@ -1746,6 +2153,9 @@
                 ${p.isArchived ? '<span class="text-[9px] px-1 bg-zinc-700 text-zinc-400 rounded">已封存</span>' : ''}
               </div>
               <div class="flex items-center gap-1.5">
+                <button onclick="openEditCategoryForm(${p.id})" class="text-[10px] px-2 py-1 rounded bg-zinc-800 text-zinc-300 hover:bg-zinc-700 font-semibold">
+                  編輯
+                </button>
                 <button onclick="openNewCategoryForm(${p.id})" class="text-[10px] px-2 py-1 rounded bg-amber-500/20 text-amber-300 font-bold hover:bg-amber-500/30">
                   + 子分類
                 </button>
@@ -1757,11 +2167,14 @@
 
             <div class="pt-2 flex flex-wrap gap-1.5">
               ${subs.length > 0 ? subs.map(s => `
-                <div class="flex items-center gap-1 px-2 py-1 rounded-lg bg-zinc-800 border border-zinc-700/60 text-[11px] text-zinc-300 ${s.isArchived ? 'opacity-50' : ''}">
+                <div class="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-zinc-800 border border-zinc-700/60 text-[11px] text-zinc-300 ${s.isArchived ? 'opacity-50' : ''}">
                   <img src="${s.icon}" class="w-3.5 h-3.5 object-contain">
                   <span>${s.name}</span>
-                  <button onclick="toggleArchiveCategory(${s.id})" class="text-zinc-500 hover:text-red-400 ml-1">
-                    <i data-lucide="x" class="w-3 h-3"></i>
+                  <button onclick="openEditCategoryForm(${s.id})" title="編輯" class="text-zinc-400 hover:text-amber-300 ml-0.5">
+                    <i data-lucide="edit-3" class="w-3 h-3"></i>
+                  </button>
+                  <button onclick="toggleArchiveCategory(${s.id})" title="${s.isArchived ? '解封' : '封存'}" class="text-zinc-500 hover:text-red-400 ml-0.5">
+                    <i data-lucide="${s.isArchived ? 'rotate-ccw' : 'x'}" class="w-3 h-3"></i>
                   </button>
                 </div>
               `).join('') : '<span class="text-[10px] text-zinc-500">尚無子分類</span>'}
@@ -1782,12 +2195,55 @@
       await loadAllData();
       showToast(willArchive ? '已封存分類' : '已解封分類', 'success');
       renderCategoryManageList();
+      renderSubCategoryQuickPills();
+    }
+
+    function switchCategoryFormLevel(level) {
+      state.categoryFormLevel = level;
+      const pBtn = document.getElementById('form-level-parent');
+      const sBtn = document.getElementById('form-level-sub');
+      const parentSelectWrap = document.getElementById('form-cat-parent-select-wrap');
+
+      if (level === 'parent') {
+        pBtn.className = 'flex-1 py-1 rounded-lg text-xs font-bold bg-amber-500 text-zinc-950';
+        sBtn.className = 'flex-1 py-1 rounded-lg text-xs font-bold text-zinc-400';
+        parentSelectWrap.classList.add('hidden');
+      } else {
+        sBtn.className = 'flex-1 py-1 rounded-lg text-xs font-bold bg-amber-500 text-zinc-950';
+        pBtn.className = 'flex-1 py-1 rounded-lg text-xs font-bold text-zinc-400';
+        parentSelectWrap.classList.remove('hidden');
+      }
+    }
+
+    function populateParentCategorySelect(selectedParentId = null) {
+      const selectEl = document.getElementById('form-cat-parent-id');
+      const parents = state.allCategories.filter(
+        c => c.type === state.categoryManageType && c.parentId === null && !c.isArchived
+      );
+
+      selectEl.innerHTML = parents.map(p => `
+        <option value="${p.id}">${p.name}</option>
+      `).join('');
+
+      if (selectedParentId) {
+        selectEl.value = selectedParentId;
+      } else if (parents.length > 0) {
+        selectEl.value = parents[0].id;
+      }
     }
 
     function openNewCategoryForm(parentId = null) {
-      document.getElementById('form-cat-parent-id').value = parentId || '';
+      document.getElementById('form-cat-id').value = '';
       document.getElementById('form-cat-name').value = '';
-      document.getElementById('category-form-title').textContent = parentId ? '新增子分類' : '新增主分類';
+      populateParentCategorySelect(parentId);
+
+      if (parentId) {
+        document.getElementById('category-form-title').textContent = '新增子分類';
+        switchCategoryFormLevel('sub');
+      } else {
+        document.getElementById('category-form-title').textContent = '新增分類';
+        switchCategoryFormLevel('parent');
+      }
 
       const iconGrid = document.getElementById('form-cat-icon-grid');
       iconGrid.innerHTML = AVAILABLE_ICONS.map((icon, idx) => `
@@ -1801,14 +2257,44 @@
       lucide.createIcons();
     }
 
+    function openEditCategoryForm(catId) {
+      const cat = state.allCategories.find(c => c.id == catId);
+      if (!cat) return;
+
+      document.getElementById('form-cat-id').value = cat.id;
+      document.getElementById('form-cat-name').value = cat.name;
+      populateParentCategorySelect(cat.parentId);
+
+      if (cat.parentId !== null) {
+        document.getElementById('category-form-title').textContent = `編輯子分類 - ${cat.name}`;
+        switchCategoryFormLevel('sub');
+      } else {
+        document.getElementById('category-form-title').textContent = `編輯主分類 - ${cat.name}`;
+        switchCategoryFormLevel('parent');
+      }
+
+      const iconGrid = document.getElementById('form-cat-icon-grid');
+      iconGrid.innerHTML = AVAILABLE_ICONS.map((icon) => `
+        <label class="flex items-center justify-center p-2 rounded-lg bg-zinc-800 border border-zinc-700 hover:border-amber-400 cursor-pointer">
+          <input type="radio" name="cat-icon-choice" value="${icon}" class="hidden" ${icon === cat.icon ? 'checked' : ''}>
+          <img src="${icon}" class="w-5 h-5 object-contain">
+        </label>
+      `).join('');
+
+      document.getElementById('category-form-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
     function closeCategoryFormModal() {
       document.getElementById('category-form-modal').classList.add('hidden');
     }
 
     async function saveCategoryForm() {
+      const catIdStr = document.getElementById('form-cat-id').value;
       const name = document.getElementById('form-cat-name').value.trim();
-      const parentIdStr = document.getElementById('form-cat-parent-id').value;
-      const parentId = parentIdStr ? parseInt(parentIdStr, 10) : null;
+      const isSub = (state.categoryFormLevel === 'sub');
+      const parentSelectVal = document.getElementById('form-cat-parent-id').value;
+      const parentId = isSub && parentSelectVal ? parseInt(parentSelectVal, 10) : null;
       const icon = document.querySelector('input[name="cat-icon-choice"]:checked')?.value || 'asset/categories-money.svg';
 
       if (!name) {
@@ -1816,20 +2302,36 @@
         return;
       }
 
-      await db.categories.add({
-        name,
-        type: state.categoryManageType,
-        parentId: parentId,
-        icon: icon,
-        color: '#f59e0b',
-        budgetMonthly: 0,
-        isArchived: false
-      });
+      if (isSub && !parentId) {
+        showToast('請先建立主分類才能新增子分類', 'error');
+        return;
+      }
+
+      if (catIdStr) {
+        const catId = parseInt(catIdStr, 10);
+        await db.categories.update(catId, {
+          name,
+          parentId,
+          icon
+        });
+        showToast(`已成功修改分類「${name}」`, 'success');
+      } else {
+        await db.categories.add({
+          name,
+          type: state.categoryManageType,
+          parentId: parentId,
+          icon: icon,
+          color: '#f59e0b',
+          budgetMonthly: 0,
+          isArchived: false
+        });
+        showToast(`已成功新增「${name}」`, 'success');
+      }
 
       await loadAllData();
-      showToast(`已成功新增「${name}」`, 'success');
       closeCategoryFormModal();
       renderCategoryManageList();
+      renderSubCategoryQuickPills();
     }
 
     /**
@@ -1981,6 +2483,7 @@
 
           await loadAllData();
           await renderWeekStripCalendar();
+          renderSubCategoryQuickPills();
           await renderTodayRecords();
           showToast('資料庫已成功還原！', 'success');
           closeBackupModal();
@@ -1993,7 +2496,7 @@
     }
 
     function switchView(view) {
-      // Home
+      // Home view handler
     }
 
     /**
