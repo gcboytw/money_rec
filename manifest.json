@@ -1,0 +1,18 @@
+{
+  "name": "PocketLedger 極速記帳",
+  "short_name": "極速記帳",
+  "description": "專為 iOS 優化、極速反應的 PWA 記帳工具",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#18181b",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "asset/categories-money.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

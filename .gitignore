@@ -1,0 +1,9 @@
+# Local Documentation (保留在本地端)
+doc/
+
+# System & OS Files
+.DS_Store
+Thumbs.db
+
+# Logs & Temp
+*.log
