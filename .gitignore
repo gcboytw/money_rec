@@ -1,6 +1,11 @@
 # Local Documentation (保留在本地端)
 doc/
 
+# Memory Palace (記憶宮殿設定檔，不推送到 GitHub)
+mempalace.yaml
+entities.json
+.mempalace/
+
 # System & OS Files
 .DS_Store
 Thumbs.db
