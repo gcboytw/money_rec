@@ -711,7 +711,7 @@
                   <i data-lucide="arrow-right-left" class="w-5 h-5"></i>
                 </div>
                 <div class="min-w-0 flex-1">
-                  <div class="flex items-center gap-1.5 text-sm font-bold text-zinc-200">
+                  <div class="flex items-center gap-1.5 text-base font-bold text-zinc-200">
                     <span>${fromAcc?.name || '未知'}</span>
                     <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-zinc-500"></i>
                     <span>${toAcc?.name || '未知'}</span>
@@ -723,7 +723,7 @@
 
               <div class="flex items-center gap-1 flex-shrink-0">
                 <div class="text-right mr-1">
-                  <div class="text-[10px] font-mono font-bold text-blue-400">
+                  <div class="text-xs font-mono font-bold text-blue-400">
                     ${rec.amount.toLocaleString()}
                   </div>
                 </div>
@@ -756,7 +756,7 @@
               </div>
               <div class="min-w-0 flex-1">
                 <div class="flex items-center gap-1.5">
-                  <span class="text-sm font-bold text-zinc-200 truncate">${catTitle}</span>
+                  <span class="text-base font-bold text-zinc-200 truncate">${catTitle}</span>
                   <span class="text-xs px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 flex-shrink-0">${acc?.name || '未知'}</span>
                 </div>
                 ${rec.note ? `<div class="text-xs text-zinc-400 truncate mt-0.5">${rec.note}</div>` : ''}
@@ -765,7 +765,7 @@
 
             <div class="flex items-center gap-1 flex-shrink-0">
               <div class="text-right mr-1">
-                <div class="text-[10px] font-mono font-bold ${amountColor}">
+                <div class="text-xs font-mono font-bold ${amountColor}">
                   ${sign}${rec.amount.toLocaleString()}
                 </div>
               </div>
@@ -1458,8 +1458,23 @@
     /**
      * Backup & Export Modal
      */
-    function openBackupModal() {
+    async function openBackupModal() {
       document.getElementById('backup-modal').classList.remove('hidden');
+      const verEl = document.getElementById('app-current-version');
+      if (verEl) {
+        if ('caches' in window) {
+          try {
+            const keys = await caches.keys();
+            const current = keys.find(k => k.startsWith('pocket-ledger-')) || '';
+            const ver = current.replace('pocket-ledger-', '') || 'v2.32';
+            verEl.textContent = ver.startsWith('v') ? ver : `v${ver}`;
+          } catch (e) {
+            verEl.textContent = 'v2.32';
+          }
+        } else {
+          verEl.textContent = 'v2.32';
+        }
+      }
       lucide.createIcons();
     }
 

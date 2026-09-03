@@ -682,8 +682,11 @@
 
         <div class="p-3 bg-zinc-900 rounded-2xl border border-zinc-800 flex items-center justify-between">
           <div>
-            <div class="text-sm font-bold text-zinc-200">檢查與更新版本</div>
-            <div class="text-xs text-zinc-400">清除舊快取並重新載入最新 App</div>
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-bold text-zinc-200">檢查與更新版本</span>
+              <span id="app-current-version" class="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-zinc-800 text-amber-400 border border-zinc-700/80">v2.32</span>
+            </div>
+            <div class="text-xs text-zinc-400 mt-0.5">清除舊快取並重新載入最新 App</div>
           </div>
           <button onclick="forceUpdateApp()" class="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-amber-400 font-bold text-xs border border-zinc-700">更新</button>
         </div>
