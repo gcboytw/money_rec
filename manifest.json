@@ -9,9 +9,9 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "asset/categories-money.svg",
-      "sizes": "192x192 512x512",
-      "type": "image/svg+xml",
+      "src": "asset/index-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ]
