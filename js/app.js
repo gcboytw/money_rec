@@ -1531,6 +1531,30 @@
     }
 
     /**
+     * 強制檢查更新與清除舊快取
+     */
+    async function forceUpdateApp() {
+      showToast('正在清除快取並檢查最新版本...', 'info');
+      try {
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        }
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          for (const reg of regs) {
+            await reg.unregister();
+          }
+        }
+        setTimeout(() => {
+          window.location.reload(true);
+        }, 600);
+      } catch (err) {
+        window.location.reload(true);
+      }
+    }
+
+    /**
      * Toast System
      */
     function showToast(message, type = 'info') {
@@ -1563,9 +1587,21 @@
     // Register Service Worker for PWA
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(err => {
+        navigator.serviceWorker.register('./sw.js').then(reg => {
+          // 每次開啟主動檢查伺服器 sw.js 是否有新版
+          reg.update();
+        }).catch(err => {
           console.log('SW registration error:', err);
         });
+      });
+
+      // 當新版本 SW 啟用接管時，自動重整頁面更新至最新版
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
       });
     }
 
