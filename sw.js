@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pocket-ledger-v4';
+const CACHE_NAME = 'pocket-ledger-v4.1';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -9,6 +9,7 @@ const ASSETS_TO_CACHE = [
   './lib/dexie.min.js',
   './lib/chart.umd.min.js',
   './lib/lucide.min.js',
+  './lib/xlsx.full.min.js',
   './asset/index-icon.png',
   './asset/account-bank.svg',
   './asset/account-creditcard.svg',

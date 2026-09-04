@@ -2267,13 +2267,13 @@
           try {
             const keys = await caches.keys();
             const current = keys.find(k => k.startsWith('pocket-ledger-')) || '';
-            const ver = current.replace('pocket-ledger-', '') || 'v2.32';
+            const ver = current.replace('pocket-ledger-', '') || 'v4.1';
             verEl.textContent = ver.startsWith('v') ? ver : `v${ver}`;
           } catch (e) {
-            verEl.textContent = 'v2.32';
+            verEl.textContent = 'v4.1';
           }
         } else {
-          verEl.textContent = 'v2.32';
+          verEl.textContent = 'v4.1';
         }
       }
       lucide.createIcons();
