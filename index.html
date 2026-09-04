@@ -14,8 +14,31 @@
   <link rel="icon" type="image/png" href="asset/index-icon.png">
   <link rel="manifest" href="manifest.json">
 
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Service Worker 註冊 (離線 PWA 支援) -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').then(reg => {
+          // 每次開啟主動檢查伺服器 sw.js 是否有新版
+          reg.update();
+        }).catch(err => {
+          console.log('SW registration error:', err);
+        });
+      });
+
+      // 當新版本 SW 啟用接管時，自動重整頁面更新至最新版
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
+      });
+    }
+  </script>
+
+  <!-- Tailwind CSS 本地化 -->
+  <script src="lib/tailwind.min.js"></script>
   <!-- 本地套件 (Vendor Libs) -->
   <script src="lib/dexie.min.js"></script>
   <script src="lib/chart.umd.min.js"></script>

@@ -3229,25 +3229,4 @@
       }, 2200);
     }
 
-    // Register Service Worker for PWA
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').then(reg => {
-          // 每次開啟主動檢查伺服器 sw.js 是否有新版
-          reg.update();
-        }).catch(err => {
-          console.log('SW registration error:', err);
-        });
-      });
-
-      // 當新版本 SW 啟用接管時，自動重整頁面更新至最新版
-      let refreshing = false;
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!refreshing) {
-          refreshing = true;
-          window.location.reload();
-        }
-      });
-    }
-
     window.addEventListener('DOMContentLoaded', initApp);
