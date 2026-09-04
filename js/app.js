@@ -16,6 +16,15 @@
       categoryManageType: 'expense',
       categoryFormLevel: 'parent', // 'parent' | 'sub'
       chartInstance: null,
+      annualBarChartInstance: null,
+      annualPieChartInstance: null,
+      reportTab: 'month',
+      reportYear: new Date().getFullYear(),
+      reportMonth: new Date().getMonth() + 1,
+      reportExpandedCatId: null,
+      reportBudgetExpanded: false,
+      annualBarMetric: 'expense',
+      pendingImportJSON: null,
       editRecordType: 'expense',
       recurringFormType: 'expense'
     };
@@ -1440,67 +1449,635 @@
     }
 
     /**
-     * Reports Modal & Chart.js Integration
+     * =========================================================================
+     * Phase 4: Reports Modal & Chart.js Integration (月報表 / 年度報表)
+     * =========================================================================
      */
     async function openReportsModal() {
-      const allRecords = await db.records.toArray();
-      const now = new Date();
-      const curYearMonth = state.selectedDate ? state.selectedDate.slice(0, 7) : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      if (state.selectedDate) {
+        const parts = state.selectedDate.split('-');
+        state.reportYear = parseInt(parts[0], 10) || new Date().getFullYear();
+        state.reportMonth = parseInt(parts[1], 10) || (new Date().getMonth() + 1);
+      } else {
+        const now = new Date();
+        state.reportYear = now.getFullYear();
+        state.reportMonth = now.getMonth() + 1;
+      }
 
-      let monthExp = 0;
-      let monthInc = 0;
-      const catExpenseMap = {};
+      state.reportTab = 'month';
+      state.reportExpandedCatId = null;
+      state.reportBudgetExpanded = false;
+      state.annualBarMetric = 'expense';
 
-      for (const rec of allRecords) {
-        if (rec.date && rec.date.startsWith(curYearMonth)) {
-          if (rec.type === 'expense') {
-            monthExp += rec.amount;
-            const parentCat = state.allCategories.find(c => c.id === rec.parentCategoryId);
-            const name = parentCat?.name || '其他';
-            catExpenseMap[name] = (catExpenseMap[name] || 0) + rec.amount;
-          } else if (rec.type === 'income') {
-            monthInc += rec.amount;
-          }
+      // 更新 Tab 樣式與視圖容器
+      updateReportTabUI();
+      await renderReportView();
+
+      document.getElementById('reports-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeReportsModal() {
+      document.getElementById('reports-modal').classList.add('hidden');
+      // 清除圖表實例釋放記憶體
+      if (state.chartInstance) {
+        state.chartInstance.destroy();
+        state.chartInstance = null;
+      }
+      if (state.annualBarChartInstance) {
+        state.annualBarChartInstance.destroy();
+        state.annualBarChartInstance = null;
+      }
+      if (state.annualPieChartInstance) {
+        state.annualPieChartInstance.destroy();
+        state.annualPieChartInstance = null;
+      }
+    }
+
+    function updateReportTabUI() {
+      const btnMonth = document.getElementById('report-tab-btn-month');
+      const btnYear = document.getElementById('report-tab-btn-year');
+      const monthContainer = document.getElementById('report-month-container');
+      const yearContainer = document.getElementById('report-year-container');
+
+      if (state.reportTab === 'month') {
+        if (btnMonth) {
+          btnMonth.className = 'flex-1 py-1.5 rounded-lg text-xs font-bold transition-all bg-amber-500 text-zinc-950 shadow';
+        }
+        if (btnYear) {
+          btnYear.className = 'flex-1 py-1.5 rounded-lg text-xs font-bold transition-all text-zinc-400 hover:text-zinc-200';
+        }
+        if (monthContainer) monthContainer.classList.remove('hidden');
+        if (yearContainer) yearContainer.classList.add('hidden');
+      } else {
+        if (btnMonth) {
+          btnMonth.className = 'flex-1 py-1.5 rounded-lg text-xs font-bold transition-all text-zinc-400 hover:text-zinc-200';
+        }
+        if (btnYear) {
+          btnYear.className = 'flex-1 py-1.5 rounded-lg text-xs font-bold transition-all bg-amber-500 text-zinc-950 shadow';
+        }
+        if (monthContainer) monthContainer.classList.add('hidden');
+        if (yearContainer) yearContainer.classList.remove('hidden');
+      }
+    }
+
+    async function switchReportTab(tab) {
+      if (state.reportTab === tab) return;
+      state.reportTab = tab;
+      state.reportExpandedCatId = null;
+      updateReportTabUI();
+      await renderReportView();
+      lucide.createIcons();
+    }
+
+    async function changeReportPeriod(delta) {
+      if (state.reportTab === 'month') {
+        state.reportMonth += delta;
+        if (state.reportMonth > 12) {
+          state.reportMonth = 1;
+          state.reportYear += 1;
+        } else if (state.reportMonth < 1) {
+          state.reportMonth = 12;
+          state.reportYear -= 1;
+        }
+      } else {
+        state.reportYear += delta;
+      }
+      await renderReportView();
+      lucide.createIcons();
+    }
+
+    function openReportPeriodPicker() {
+      if (state.reportTab === 'month') {
+        const picker = document.getElementById('report-month-input');
+        if (picker) {
+          picker.value = `${state.reportYear}-${String(state.reportMonth).padStart(2, '0')}`;
+          picker.showPicker?.() || picker.click();
+        }
+      }
+    }
+
+    async function onReportMonthPickerChanged(val) {
+      if (!val) return;
+      const parts = val.split('-');
+      if (parts.length === 2) {
+        state.reportYear = parseInt(parts[0], 10);
+        state.reportMonth = parseInt(parts[1], 10);
+        await renderReportView();
+        lucide.createIcons();
+      }
+    }
+
+    async function renderReportView() {
+      const periodLabel = document.getElementById('report-period-label');
+      if (periodLabel) {
+        if (state.reportTab === 'month') {
+          periodLabel.textContent = `${state.reportYear}年 ${state.reportMonth}月`;
+        } else {
+          periodLabel.textContent = `${state.reportYear}年度`;
         }
       }
 
-      document.getElementById('stat-month-expense').textContent = `NT$ ${monthExp.toLocaleString()}`;
-      document.getElementById('stat-month-income').textContent = `NT$ ${monthInc.toLocaleString()}`;
-      document.getElementById('stat-month-balance').textContent = `NT$ ${(monthInc - monthExp).toLocaleString()}`;
+      if (state.reportTab === 'month') {
+        await renderMonthlyReport();
+      } else {
+        await renderAnnualReport();
+      }
+    }
 
+    /**
+     * 渲染月報表：圓餅圖、各分類支出總計、子分類展開鑽取
+     */
+    async function renderMonthlyReport() {
+      const curYearMonth = `${state.reportYear}-${String(state.reportMonth).padStart(2, '0')}`;
+      const monthStart = `${curYearMonth}-01`;
+      const monthEnd = `${curYearMonth}-31`;
+
+      const monthRecords = await db.records
+        .where('date')
+        .between(monthStart, monthEnd, true, true)
+        .toArray();
+
+      let monthExp = 0;
+      let monthInc = 0;
+
+      // 分類統計結構：主分類 -> { info, total, count, subCats: { [subId]: { info, total, count } } }
+      const catExpenseMap = {};
+
+      const catMap = {};
+      state.allCategories.forEach(c => { catMap[c.id] = c; });
+
+      for (const rec of monthRecords) {
+        if (rec.type === 'expense') {
+          monthExp += rec.amount;
+          const parentCat = catMap[rec.parentCategoryId] || { id: 'other', name: '其他', icon: 'asset/category/other.png' };
+          const pId = parentCat.id || 'other';
+
+          if (!catExpenseMap[pId]) {
+            catExpenseMap[pId] = {
+              id: pId,
+              name: parentCat.name,
+              icon: parentCat.icon,
+              total: 0,
+              count: 0,
+              subCats: {}
+            };
+          }
+
+          catExpenseMap[pId].total += rec.amount;
+          catExpenseMap[pId].count += 1;
+
+          // 子分類統計
+          const subCat = catMap[rec.subCategoryId] || { id: 'default', name: '一般', icon: parentCat.icon };
+          const sId = subCat.id || 'default';
+
+          if (!catExpenseMap[pId].subCats[sId]) {
+            catExpenseMap[pId].subCats[sId] = {
+              id: sId,
+              name: subCat.name,
+              icon: subCat.icon,
+              total: 0,
+              count: 0
+            };
+          }
+
+          catExpenseMap[pId].subCats[sId].total += rec.amount;
+          catExpenseMap[pId].subCats[sId].count += 1;
+        } else if (rec.type === 'income') {
+          monthInc += rec.amount;
+        }
+      }
+
+      // 更新本月收支小卡
+      const expEl = document.getElementById('stat-month-expense');
+      const incEl = document.getElementById('stat-month-income');
+      const balEl = document.getElementById('stat-month-balance');
+
+      if (expEl) expEl.textContent = `NT$ ${monthExp.toLocaleString()}`;
+      if (incEl) incEl.textContent = `NT$ ${monthInc.toLocaleString()}`;
+      if (balEl) balEl.textContent = `NT$ ${(monthInc - monthExp).toLocaleString()}`;
+
+      // 圓餅圖 (Doughnut Chart) 排序與取色
+      const sortedCats = Object.values(catExpenseMap).sort((a, b) => b.total - a.total);
+      const labels = sortedCats.map(c => c.name);
+      const data = sortedCats.map(c => c.total);
+
+      const colorPalette = [
+        '#f59e0b', '#3b82f6', '#10b981', '#ef4444', '#8b5cf6',
+        '#ec4899', '#06b6d4', '#eab308', '#6366f1', '#14b8a6',
+        '#f97316', '#a855f7'
+      ];
+
+      // 1. 繪製左側甜甜圈圓餅圖 (不使用 Chart.js 內建 legend)
       const ctx = document.getElementById('categoryExpenseChart').getContext('2d');
       if (state.chartInstance) state.chartInstance.destroy();
 
-      const labels = Object.keys(catExpenseMap);
-      const data = Object.values(catExpenseMap);
-
       if (labels.length === 0) {
-        labels.push('尚無支出');
-        data.push(1);
+        state.chartInstance = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: ['本月尚無支出'],
+            datasets: [{
+              data: [1],
+              backgroundColor: ['#27272a']
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '62%',
+            plugins: {
+              legend: { display: false },
+              tooltip: { enabled: false }
+            }
+          }
+        });
+      } else {
+        state.chartInstance = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: labels,
+            datasets: [{
+              data: data,
+              backgroundColor: colorPalette.slice(0, labels.length),
+              borderWidth: 2,
+              borderColor: '#18181b'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '62%',
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    const val = context.raw || 0;
+                    const pct = monthExp > 0 ? ((val / monthExp) * 100).toFixed(1) : 0;
+                    return ` ${context.label}: NT$ ${val.toLocaleString()} (${pct}%)`;
+                  }
+                }
+              }
+            }
+          }
+        });
       }
 
-      state.chartInstance = new Chart(ctx, {
-        type: 'doughnut',
+      // 2. 渲染右側分類與佔比(%)列表
+      const legendListEl = document.getElementById('report-pie-legend-list');
+      if (legendListEl) {
+        if (sortedCats.length === 0) {
+          legendListEl.innerHTML = `<div class="text-xs text-zinc-500 py-6 text-center">尚無支出資料</div>`;
+        } else {
+          legendListEl.innerHTML = sortedCats.map((cat, idx) => {
+            const pct = monthExp > 0 ? ((cat.total / monthExp) * 100).toFixed(1) : '0.0';
+            const color = colorPalette[idx % colorPalette.length];
+            return `
+              <div class="flex items-center justify-between text-xs py-0.5">
+                <div class="flex items-center gap-2 min-w-0 pr-1">
+                  <span class="w-3 h-3 rounded-sm flex-shrink-0" style="background-color: ${color}"></span>
+                  <span class="text-zinc-200 font-medium truncate text-xs">${cat.name}</span>
+                </div>
+                <span class="font-mono text-zinc-400 font-bold text-xs flex-shrink-0">${pct}%</span>
+              </div>
+            `;
+          }).join('');
+        }
+      }
+
+      // 3. 渲染分類支出總計排行榜（顯示：分類名稱、佔比、金額，點選展開子分類）
+      renderReportCategoryRankList(sortedCats, monthExp);
+
+      // 4. 渲染預算進度
+      await renderReportBudgets(curYearMonth);
+    }
+
+    /**
+     * 渲染各分類支出排行統計欄位：
+     * 依要求顯示：分類名稱、佔比、金額
+     * 點選分類後展開子分類金額 (例：早餐：100  午餐：200  晚餐：200)
+     */
+    function renderReportCategoryRankList(sortedCats, totalMonthExp) {
+      const listEl = document.getElementById('report-category-rank-list');
+      if (!listEl) return;
+
+      if (sortedCats.length === 0) {
+        listEl.innerHTML = `
+          <div class="p-6 text-center text-xs text-zinc-500 bg-zinc-900/50 rounded-2xl border border-zinc-800/80">
+            本月尚無任何支出記錄
+          </div>
+        `;
+        return;
+      }
+
+      listEl.innerHTML = sortedCats.map(cat => {
+        const pct = totalMonthExp > 0 ? ((cat.total / totalMonthExp) * 100).toFixed(1) : '0.0';
+        // 使用字串一致比對避免 number/string 型態不匹配
+        const isExpanded = state.reportExpandedCatId && String(state.reportExpandedCatId) === String(cat.id);
+
+        // 子分類明細列表：依金額高至低排列
+        const subCatsList = Object.values(cat.subCats).sort((a, b) => b.total - a.total);
+        const subCatsHtml = subCatsList.map(sub => {
+          return `
+            <div class="flex items-center justify-between py-1.5 px-3 rounded-xl bg-zinc-950/70 border border-zinc-800/80 text-xs">
+              <span class="text-zinc-300 font-medium">${sub.name}</span>
+              <span class="font-mono font-bold text-zinc-100">NT$ ${sub.total.toLocaleString()}</span>
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <div class="p-3 bg-zinc-900 rounded-2xl border ${isExpanded ? 'border-amber-500/50 bg-zinc-900/90' : 'border-zinc-800'} hover:border-zinc-700 transition cursor-pointer shadow-sm select-none" onclick="toggleReportCategoryDetail('${cat.id}')">
+            <!-- 主分類列：分類名稱 | 佔比 | 金額 -->
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-8 h-8 rounded-xl bg-zinc-800/80 flex items-center justify-center p-1.5 border border-zinc-700/50 flex-shrink-0">
+                  <img src="${cat.icon}" class="w-full h-full object-contain" onerror="this.src='asset/category/other.png'">
+                </div>
+                <span class="text-sm font-bold text-zinc-100 truncate">${cat.name}</span>
+              </div>
+
+              <div class="flex items-center gap-3 flex-shrink-0">
+                <span class="text-xs font-mono font-semibold text-zinc-400">${pct}%</span>
+                <span class="text-sm font-mono font-bold text-amber-400">NT$ ${cat.total.toLocaleString()}</span>
+                <i data-lucide="${isExpanded ? 'chevron-up' : 'chevron-down'}" class="w-4 h-4 text-zinc-500"></i>
+              </div>
+            </div>
+
+            <!-- 點選展開子分類金額區塊 -->
+            ${isExpanded ? `
+              <div class="mt-3 pt-2.5 border-t border-zinc-800 space-y-1.5" onclick="event.stopPropagation()">
+                <div class="text-[11px] font-bold text-zinc-400 px-1 mb-1">子分類支出明細：</div>
+                ${subCatsHtml || '<div class="text-xs text-zinc-500 text-center py-2">無子分類支出紀錄</div>'}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function toggleReportCategoryDetail(catId) {
+      const strId = String(catId);
+      state.reportExpandedCatId = (state.reportExpandedCatId && String(state.reportExpandedCatId) === strId) ? null : strId;
+      renderMonthlyReport();
+      lucide.createIcons();
+    }
+
+    /**
+     * 渲染年度報表：
+     * 1. 長條圖 (單一項目切換：預設總支出，可切換總收入、每月結餘)
+     * 2. 年度分類圓餅圖 (左右呈現，保留名稱與總支出，新增年度總結餘，右側顯示佔比%)
+     */
+    async function renderAnnualReport() {
+      const yearStr = String(state.reportYear);
+      const yearStart = `${yearStr}-01-01`;
+      const yearEnd = `${yearStr}-12-31`;
+
+      const records = await db.records
+        .where('date')
+        .between(yearStart, yearEnd, true, true)
+        .toArray();
+
+      const monthlyExp = Array(12).fill(0);
+      const monthlyInc = Array(12).fill(0);
+      const monthlyBal = Array(12).fill(0);
+
+      const catMap = {};
+      state.allCategories.forEach(c => { catMap[c.id] = c; });
+
+      const annualCatExpenseMap = {};
+
+      for (const rec of records) {
+        if (!rec.date) continue;
+        const m = parseInt(rec.date.slice(5, 7), 10) - 1;
+        if (m < 0 || m > 11) continue;
+
+        if (rec.type === 'expense') {
+          monthlyExp[m] += rec.amount;
+          const pCat = catMap[rec.parentCategoryId] || { name: '其他' };
+          const pName = pCat.name || '其他';
+          annualCatExpenseMap[pName] = (annualCatExpenseMap[pName] || 0) + rec.amount;
+        } else if (rec.type === 'income') {
+          monthlyInc[m] += rec.amount;
+        }
+      }
+
+      for (let i = 0; i < 12; i++) {
+        monthlyBal[i] = monthlyInc[i] - monthlyExp[i];
+      }
+
+      const totalYearExp = monthlyExp.reduce((a, b) => a + b, 0);
+      const totalYearInc = monthlyInc.reduce((a, b) => a + b, 0);
+      const totalYearBal = totalYearInc - totalYearExp;
+
+      // 更新年度收支統計頂部小卡
+      const yearExpEl = document.getElementById('stat-year-expense');
+      const yearIncEl = document.getElementById('stat-year-income');
+      const yearBalEl = document.getElementById('stat-year-balance');
+      const annualPieTotalEl = document.getElementById('report-annual-pie-total');
+      const annualPieBalEl = document.getElementById('report-annual-pie-balance');
+
+      if (yearExpEl) yearExpEl.textContent = `NT$ ${totalYearExp.toLocaleString()}`;
+      if (yearIncEl) yearIncEl.textContent = `NT$ ${totalYearInc.toLocaleString()}`;
+      if (yearBalEl) yearBalEl.textContent = `NT$ ${totalYearBal.toLocaleString()}`;
+      if (annualPieTotalEl) annualPieTotalEl.textContent = `NT$ ${totalYearExp.toLocaleString()}`;
+      if (annualPieBalEl) {
+        annualPieBalEl.textContent = `NT$ ${totalYearBal.toLocaleString()}`;
+        annualPieBalEl.className = totalYearBal >= 0 ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold';
+      }
+
+      // ==========================================
+      // 1. 每月趨勢長條圖 (依切換只顯示單一項目)
+      // ==========================================
+      const metric = state.annualBarMetric || 'expense';
+      const btnExp = document.getElementById('annual-bar-tab-expense');
+      const btnInc = document.getElementById('annual-bar-tab-income');
+      const btnBal = document.getElementById('annual-bar-tab-balance');
+
+      if (btnExp) {
+        btnExp.className = metric === 'expense'
+          ? 'px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all bg-amber-500 text-zinc-950 shadow'
+          : 'px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all text-zinc-400 hover:text-zinc-200';
+      }
+      if (btnInc) {
+        btnInc.className = metric === 'income'
+          ? 'px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all bg-emerald-500 text-zinc-950 shadow'
+          : 'px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all text-zinc-400 hover:text-zinc-200';
+      }
+      if (btnBal) {
+        btnBal.className = metric === 'balance'
+          ? 'px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all bg-blue-500 text-zinc-950 shadow'
+          : 'px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all text-zinc-400 hover:text-zinc-200';
+      }
+
+      let activeLabel = '每月總支出';
+      let activeData = monthlyExp;
+      let activeBgColor = '#f59e0b';
+
+      if (metric === 'income') {
+        activeLabel = '每月總收入';
+        activeData = monthlyInc;
+        activeBgColor = '#10b981';
+      } else if (metric === 'balance') {
+        activeLabel = '每月結餘';
+        activeData = monthlyBal;
+        activeBgColor = '#3b82f6';
+      }
+
+      const barCtx = document.getElementById('annualBarChart').getContext('2d');
+      if (state.annualBarChartInstance) state.annualBarChartInstance.destroy();
+
+      const monthLabels = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+
+      state.annualBarChartInstance = new Chart(barCtx, {
+        type: 'bar',
         data: {
-          labels: labels,
+          labels: monthLabels,
           datasets: [{
-            data: data,
-            backgroundColor: ['#f59e0b', '#3b82f6', '#10b981', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#eab308']
+            label: activeLabel,
+            data: activeData,
+            backgroundColor: activeBgColor,
+            borderRadius: 4,
+            barPercentage: 0.65,
+            maxBarThickness: 32
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: { position: 'bottom', labels: { color: '#a1a1aa', font: { size: 10 } } }
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return ` ${context.dataset.label}: NT$ ${(context.raw || 0).toLocaleString()}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              ticks: { color: '#a1a1aa', font: { size: 10 } },
+              grid: { color: '#27272a' }
+            },
+            y: {
+              ticks: {
+                color: '#a1a1aa',
+                font: { size: 10 },
+                callback: function(value) {
+                  if (Math.abs(value) >= 10000) {
+                    return (value / 10000) + '萬';
+                  }
+                  return value;
+                }
+              },
+              grid: { color: '#27272a' }
+            }
           }
         }
       });
 
-      // 渲染報表內的本月預算達成與主分類進度
-      await renderReportBudgets(curYearMonth);
+      // ==========================================
+      // 2. 年度分類支出圓餅圖 (左右呈現，右側顯示佔比%)
+      // ==========================================
+      const pieCtx = document.getElementById('annualPieChart').getContext('2d');
+      if (state.annualPieChartInstance) state.annualPieChartInstance.destroy();
 
-      document.getElementById('reports-modal').classList.remove('hidden');
+      const sortedCatEntries = Object.entries(annualCatExpenseMap).sort((a, b) => b[1] - a[1]);
+      const pieLabels = sortedCatEntries.map(e => e[0]);
+      const pieData = sortedCatEntries.map(e => e[1]);
+
+      const colorPalette = [
+        '#f59e0b', '#3b82f6', '#10b981', '#ef4444', '#8b5cf6',
+        '#ec4899', '#06b6d4', '#eab308', '#6366f1', '#14b8a6',
+        '#f97316', '#a855f7'
+      ];
+
+      if (pieLabels.length === 0) {
+        state.annualPieChartInstance = new Chart(pieCtx, {
+          type: 'doughnut',
+          data: {
+            labels: ['本年度尚無支出'],
+            datasets: [{
+              data: [1],
+              backgroundColor: ['#27272a']
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '62%',
+            plugins: {
+              legend: { display: false },
+              tooltip: { enabled: false }
+            }
+          }
+        });
+      } else {
+        state.annualPieChartInstance = new Chart(pieCtx, {
+          type: 'doughnut',
+          data: {
+            labels: pieLabels,
+            datasets: [{
+              data: pieData,
+              backgroundColor: colorPalette.slice(0, pieLabels.length),
+              borderWidth: 2,
+              borderColor: '#18181b'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '62%',
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    const val = context.raw || 0;
+                    const pct = totalYearExp > 0 ? ((val / totalYearExp) * 100).toFixed(1) : 0;
+                    return ` ${context.label}: NT$ ${val.toLocaleString()} (${pct}%)`;
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+
+      // 渲染年度圓餅圖右側分類名稱與佔比(%)列表
+      const annualLegendListEl = document.getElementById('report-annual-pie-legend-list');
+      if (annualLegendListEl) {
+        if (sortedCatEntries.length === 0) {
+          annualLegendListEl.innerHTML = `<div class="text-xs text-zinc-500 py-6 text-center">本年度尚無支出</div>`;
+        } else {
+          annualLegendListEl.innerHTML = sortedCatEntries.map((entry, idx) => {
+            const name = entry[0];
+            const amount = entry[1];
+            const pct = totalYearExp > 0 ? ((amount / totalYearExp) * 100).toFixed(1) : '0.0';
+            const color = colorPalette[idx % colorPalette.length];
+            return `
+              <div class="flex items-center justify-between text-xs py-0.5">
+                <div class="flex items-center gap-2 min-w-0 pr-1">
+                  <span class="w-3 h-3 rounded-sm flex-shrink-0" style="background-color: ${color}"></span>
+                  <span class="text-zinc-200 font-medium truncate text-xs">${name}</span>
+                </div>
+                <span class="font-mono text-zinc-400 font-bold text-xs flex-shrink-0">${pct}%</span>
+              </div>
+            `;
+          }).join('');
+        }
+      }
+    }
+
+    /**
+     * 切換年度長條圖顯示項目 (總支出 / 總收入 / 每月結餘)
+     */
+    async function switchAnnualBarMetric(metric) {
+      if (state.annualBarMetric === metric) return;
+      state.annualBarMetric = metric;
+      await renderAnnualReport();
       lucide.createIcons();
     }
 
@@ -1511,7 +2088,10 @@
       const spentEl = document.getElementById('report-budget-overall-spent');
       const totalEl = document.getElementById('report-budget-overall-total');
       const remainEl = document.getElementById('report-budget-overall-remaining');
-      const listEl = document.getElementById('report-budget-category-list');
+      const tagEl = document.getElementById('report-budget-status-tag');
+      const overspentListEl = document.getElementById('report-budget-overspent-list');
+      const containerEl = document.getElementById('report-budget-overspent-container');
+      const expandIcon = document.getElementById('report-budget-expand-icon');
 
       const [year, month] = currentYearMonth.split('-');
       if (labelEl) labelEl.textContent = `${year}年 ${parseInt(month, 10)}月 預算達成狀況`;
@@ -1545,6 +2125,18 @@
 
       if (spentEl) spentEl.textContent = `NT$ ${totalSpent.toLocaleString()}`;
       if (totalEl) totalEl.textContent = totalBudget > 0 ? `NT$ ${totalBudget.toLocaleString()}` : '未設預算';
+
+      // 篩選出「超支」的主分類 (budget > 0 且 spent > budget)
+      const overspentCats = expenseParents
+        .map(c => {
+          const spent = catSpentMap[c.id] || 0;
+          const budget = c.budgetMonthly || 0;
+          const overspent = spent - budget;
+          const pct = budget > 0 ? Math.round((spent / budget) * 100) : 0;
+          return { ...c, spent, budget, overspent, pct };
+        })
+        .filter(c => c.budget > 0 && c.overspent > 0)
+        .sort((a, b) => b.overspent - a.overspent);
 
       if (totalBudget > 0) {
         const overallRatio = totalSpent / totalBudget;
@@ -1588,95 +2180,84 @@
         }
       }
 
-      if (!listEl) return;
-
-      if (expenseParents.length === 0) {
-        listEl.innerHTML = `<div class="p-4 text-center text-xs text-zinc-500">尚無支出主分類</div>`;
-        return;
+      // 更新點選狀態標籤 (Tag)
+      if (tagEl) {
+        if (totalBudget === 0) {
+          tagEl.textContent = '未設預算';
+          tagEl.className = 'text-[10px] px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 font-medium';
+        } else if (overspentCats.length > 0) {
+          tagEl.textContent = `超支 ${overspentCats.length} 項 (點選查看)`;
+          tagEl.className = 'text-[10px] px-2 py-0.5 rounded-full bg-red-950/80 text-red-400 border border-red-800/80 font-bold';
+        } else {
+          tagEl.textContent = '無超支項目';
+          tagEl.className = 'text-[10px] px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800/80 font-medium';
+        }
       }
 
-      listEl.innerHTML = expenseParents.map(c => {
-        const spent = catSpentMap[c.id] || 0;
-        const budget = c.budgetMonthly || 0;
+      // 保持或更新展開容器之狀態
+      if (containerEl) {
+        containerEl.classList.toggle('hidden', !state.reportBudgetExpanded);
+      }
+      if (expandIcon) {
+        expandIcon.setAttribute('data-lucide', state.reportBudgetExpanded ? 'chevron-up' : 'chevron-down');
+      }
 
-        let pctText = '--';
-        let barClass = 'bg-zinc-600';
-        let statusBadge = '';
-        let barWidth = 0;
-
-        if (budget > 0) {
-          const ratio = spent / budget;
-          const pct = Math.round(ratio * 100);
-          pctText = `${pct}%`;
-          barWidth = Math.min(100, pct);
-
-          if (pct > 100) {
-            barClass = 'bg-red-500';
-            statusBadge = `
-              <span class="text-xs px-2 py-0.5 rounded-md bg-red-950/80 text-red-400 border border-red-800/80 font-bold flex items-center gap-1">
-                <i data-lucide="alert-triangle" class="w-3 h-3"></i>
-                超支 NT$ ${(spent - budget).toLocaleString()}
-              </span>
-            `;
-          } else if (pct > 80) {
-            barClass = 'bg-orange-500';
-            statusBadge = `
-              <span class="text-xs px-2 py-0.5 rounded-md bg-orange-950/80 text-orange-400 border border-orange-800/80 font-bold">
-                已達 ${pct}% (剩餘 NT$ ${(budget - spent).toLocaleString()})
-              </span>
-            `;
-          } else {
-            barClass = 'bg-emerald-500';
-            statusBadge = `
-              <span class="text-xs px-2 py-0.5 rounded-md bg-emerald-950/60 text-emerald-300 border border-emerald-800/60 font-medium">
-                剩餘 NT$ ${(budget - spent).toLocaleString()}
-              </span>
-            `;
-          }
-        } else {
-          barWidth = spent > 0 ? 100 : 0;
-          barClass = 'bg-zinc-700';
-          statusBadge = `
-            <span class="text-xs px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-400 font-medium">
-              未設上限
-            </span>
+      // 渲染超支列表：排版風格同分類支出排行統計
+      if (overspentListEl) {
+        if (overspentCats.length === 0) {
+          overspentListEl.innerHTML = `
+            <div class="py-3 px-4 text-center text-xs text-emerald-400 bg-emerald-950/20 border border-emerald-900/40 rounded-xl">
+              本月各分類支出均在預算內，無任何超支項目！ 🎉
+            </div>
           `;
+        } else {
+          overspentListEl.innerHTML = overspentCats.map(c => {
+            return `
+              <div class="p-2.5 bg-zinc-950/80 rounded-xl border border-red-900/50 flex items-center justify-between text-xs">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <div class="w-7 h-7 rounded-lg bg-zinc-800 flex items-center justify-center p-1 border border-zinc-700/50 flex-shrink-0">
+                    <img src="${c.icon}" class="w-full h-full object-contain" onerror="this.src='asset/category/other.png'">
+                  </div>
+                  <div class="min-w-0">
+                    <div class="text-xs font-bold text-zinc-100 truncate">${c.name}</div>
+                    <div class="text-[10px] text-zinc-400 font-mono mt-0.5">
+                      預算 NT$ ${c.budget.toLocaleString()} / 已花 NT$ ${c.spent.toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+
+                <div class="text-right flex-shrink-0">
+                  <div class="text-xs font-bold font-mono text-red-400">
+                    超支 NT$ ${c.overspent.toLocaleString()}
+                  </div>
+                  <div class="text-[10px] font-mono text-red-400/80 mt-0.5 font-bold">
+                    ${c.pct}%
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('');
         }
-
-        return `
-          <div class="p-3 bg-zinc-900 rounded-2xl border border-zinc-800 space-y-2">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <img src="${c.icon}" class="w-5 h-5 object-contain">
-                <span class="text-xs font-bold text-zinc-200">${c.name}</span>
-              </div>
-              <div class="text-right">
-                <span class="text-xs font-mono font-bold text-amber-400">NT$ ${spent.toLocaleString()}</span>
-                <span class="text-xs text-zinc-500 font-mono"> / ${budget > 0 ? `NT$ ${budget.toLocaleString()}` : '無限制'}</span>
-              </div>
-            </div>
-
-            <!-- Progress Bar -->
-            <div class="w-full h-2 bg-zinc-800 rounded-full overflow-hidden">
-              <div class="h-full ${barClass} rounded-full transition-all duration-300" style="width: ${barWidth}%"></div>
-            </div>
-
-            <!-- Status Label (No edit button as requested) -->
-            <div class="flex items-center justify-between pt-0.5">
-              ${statusBadge}
-              <span class="text-xs font-mono font-bold ${budget > 0 && spent > budget ? 'text-red-400' : 'text-zinc-400'}">${pctText}</span>
-            </div>
-          </div>
-        `;
-      }).join('');
+      }
     }
 
-    function closeReportsModal() {
-      document.getElementById('reports-modal').classList.add('hidden');
+    function toggleReportBudgetDetail() {
+      state.reportBudgetExpanded = !state.reportBudgetExpanded;
+      const containerEl = document.getElementById('report-budget-overspent-container');
+      const expandIcon = document.getElementById('report-budget-expand-icon');
+      if (containerEl) {
+        containerEl.classList.toggle('hidden', !state.reportBudgetExpanded);
+      }
+      if (expandIcon) {
+        expandIcon.setAttribute('data-lucide', state.reportBudgetExpanded ? 'chevron-up' : 'chevron-down');
+      }
+      lucide.createIcons();
     }
 
     /**
-     * Backup & Export Modal
+     * =========================================================================
+     * Phase 4: 資料匯出 (XLSX / CSV / JSON) & 資料庫還原
+     * =========================================================================
      */
     async function openBackupModal() {
       document.getElementById('backup-modal').classList.remove('hidden');
@@ -1702,28 +2283,146 @@
       document.getElementById('backup-modal').classList.add('hidden');
     }
 
-    async function exportJSONBackup() {
-      const data = {
-        schemaVersion: 2,
-        exportedAt: new Date().toISOString(),
-        categories: await db.categories.toArray(),
-        accounts: await db.accounts.toArray(),
-        records: await db.records.toArray(),
-        recurring: await db.recurring.toArray(),
-        templates: await db.templates.toArray()
-      };
+    /**
+     * 產出格式化交易紀錄清單供 XLS 匯出 (依需求排除轉帳資料)
+     */
+    async function getFormattedExportRows() {
+      const records = await db.records.toArray();
+      // 僅保留支出與收入紀錄，不需要轉帳
+      const validRecords = records.filter(r => r.type === 'expense' || r.type === 'income');
+      // 依日期由新至舊排序
+      validRecords.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `PocketLedger_Backup_${getTodayString()}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast('備份檔案已成功下載', 'success');
+      const catMap = {};
+      state.allCategories.forEach(c => { catMap[c.id] = c; });
+
+      const accMap = {};
+      state.allAccounts.forEach(a => { accMap[a.id] = a; });
+
+      return validRecords.map(r => {
+        const typeText = r.type === 'income' ? '收入' : '支出';
+        const parentName = catMap[r.parentCategoryId]?.name || '';
+        const subName = catMap[r.subCategoryId]?.name || '';
+        const accName = accMap[r.accountId]?.name || '';
+
+        return {
+          '日期': r.date || '',
+          '類型': typeText,
+          '主分類': parentName,
+          '子分類': subName,
+          '帳戶': accName,
+          '金額': r.amount || 0,
+          '備註': r.note || ''
+        };
+      });
     }
 
-    async function importJSONBackup(event) {
+    /**
+     * 匯出 Excel (XLSX)
+     */
+    async function exportXLSXRecords() {
+      try {
+        if (typeof XLSX === 'undefined') {
+          showToast('XLSX 套件尚未載入完成，請稍候重試', 'error');
+          return;
+        }
+
+        const rows = await getFormattedExportRows();
+        if (rows.length === 0) {
+          showToast('目前尚無記帳紀錄可匯出', 'info');
+          return;
+        }
+
+        const ws = XLSX.utils.json_to_sheet(rows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, '交易明細');
+
+        const dateTag = getTodayString().replace(/-/g, '');
+        XLSX.writeFile(wb, `PocketLedger_Records_${dateTag}.xlsx`);
+        showToast('Excel 試算表已成功匯出下載！', 'success');
+      } catch (err) {
+        console.error('Export XLSX Error:', err);
+        showToast('匯出 Excel 失敗：' + err.message, 'error');
+      }
+    }
+
+    /**
+     * 匯出 CSV (UTF-8 加 BOM 避免 Excel 亂碼)
+     */
+    async function exportCSVRecords() {
+      try {
+        const rows = await getFormattedExportRows();
+        if (rows.length === 0) {
+          showToast('目前尚無記帳紀錄可匯出', 'info');
+          return;
+        }
+
+        const headers = ['日期', '類型', '主分類', '子分類', '轉出／交易帳戶', '轉入帳戶', '金額', '備註'];
+        const csvLines = [headers.join(',')];
+
+        for (const row of rows) {
+          const line = headers.map(h => {
+            let val = String(row[h] !== undefined ? row[h] : '');
+            // 特殊字元與引號處理
+            if (val.includes(',') || val.includes('"') || val.includes('\n')) {
+              val = `"${val.replace(/"/g, '""')}"`;
+            }
+            return val;
+          }).join(',');
+          csvLines.push(line);
+        }
+
+        // 加入 UTF-8 BOM (\uFEFF)
+        const csvContent = '\uFEFF' + csvLines.join('\r\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const dateTag = getTodayString().replace(/-/g, '');
+        a.href = url;
+        a.download = `PocketLedger_Records_${dateTag}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('CSV 檔案已成功匯出下載！', 'success');
+      } catch (err) {
+        console.error('Export CSV Error:', err);
+        showToast('匯出 CSV 失敗：' + err.message, 'error');
+      }
+    }
+
+    /**
+     * 匯出 JSON 完整資料庫備份
+     */
+    async function exportJSONBackup() {
+      try {
+        const data = {
+          schemaVersion: 2,
+          exportedAt: new Date().toISOString(),
+          categories: await db.categories.toArray(),
+          accounts: await db.accounts.toArray(),
+          records: await db.records.toArray(),
+          recurring: await db.recurring.toArray(),
+          templates: await db.templates.toArray()
+        };
+
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const dateTag = getTodayString().replace(/-/g, '');
+        a.href = url;
+        a.download = `PocketLedger_Backup_${dateTag}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('完整 JSON 備份檔已成功下載！', 'success');
+      } catch (err) {
+        console.error('Export JSON Error:', err);
+        showToast('匯出 JSON 備份失敗', 'error');
+      }
+    }
+
+    /**
+     * 選擇還原檔案並進行格式檢查與彈出模式選擇
+     */
+    function onImportJSONSelected(event) {
       const file = event.target.files[0];
       if (!file) return;
 
@@ -1731,12 +2430,60 @@
       reader.onload = async (e) => {
         try {
           const json = JSON.parse(e.target.result);
-          if (!json.categories || !json.accounts || !json.records) {
-            showToast('備份檔案格式不正確', 'error');
+          
+          // 驗證結構與必要欄位
+          if (!json || typeof json !== 'object' || !Array.isArray(json.categories) || !Array.isArray(json.accounts) || !Array.isArray(json.records)) {
+            showToast('備份檔案格式不正確，缺少必要資料表', 'error');
             return;
           }
 
-          await db.transaction('rw', db.categories, db.accounts, db.records, db.recurring, db.templates, async () => {
+          state.pendingImportJSON = json;
+
+          const summaryEl = document.getElementById('import-file-summary');
+          if (summaryEl) {
+            const expDate = json.exportedAt ? new Date(json.exportedAt).toLocaleString('zh-TW') : '未知時間';
+            const schemaVer = json.schemaVersion || 1;
+            summaryEl.innerHTML = `
+              <div><strong>備份時間：</strong>${expDate}</div>
+              <div><strong>規格版本：</strong>v${schemaVer}</div>
+              <div class="grid grid-cols-2 gap-1 pt-1 text-zinc-400 border-t border-zinc-800">
+                <span>帳戶：${json.accounts.length} 個</span>
+                <span>分類：${json.categories.length} 個</span>
+                <span>記帳：${json.records.length} 筆</span>
+                <span>排程：${(json.recurring || []).length} 筆</span>
+              </div>
+            `;
+          }
+
+          document.getElementById('import-confirm-modal').classList.remove('hidden');
+          lucide.createIcons();
+        } catch (err) {
+          console.error(err);
+          showToast('無法解析此 JSON 備份檔案', 'error');
+        } finally {
+          // 清空 input 讓同檔名可以重複選取
+          event.target.value = '';
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function closeImportConfirmModal() {
+      state.pendingImportJSON = null;
+      document.getElementById('import-confirm-modal').classList.add('hidden');
+    }
+
+    /**
+     * 執行 JSON 資料還原 (overwrite 覆蓋還原 / merge 合併匯入)
+     */
+    async function executeJSONImport(mode) {
+      const json = state.pendingImportJSON;
+      if (!json) return;
+
+      try {
+        await db.transaction('rw', db.categories, db.accounts, db.records, db.recurring, db.templates, async () => {
+          if (mode === 'overwrite') {
+            // 完整覆蓋：清空目前全部資料表
             await db.categories.clear();
             await db.accounts.clear();
             await db.records.clear();
@@ -1746,22 +2493,63 @@
             await db.categories.bulkAdd(json.categories);
             await db.accounts.bulkAdd(json.accounts);
             await db.records.bulkAdd(json.records);
-            if (json.recurring) await db.recurring.bulkAdd(json.recurring);
-            if (json.templates) await db.templates.bulkAdd(json.templates);
-          });
+            if (json.recurring && json.recurring.length > 0) {
+              await db.recurring.bulkAdd(json.recurring);
+            }
+            if (json.templates && json.templates.length > 0) {
+              await db.templates.bulkAdd(json.templates);
+            }
+          } else if (mode === 'merge') {
+            // 合併匯入：比對已存在的 ID 或項目，補齊不存在的新資料
+            const curCats = await db.categories.toArray();
+            const curCatIds = new Set(curCats.map(c => c.id));
+            const newCats = json.categories.filter(c => !curCatIds.has(c.id));
+            if (newCats.length > 0) await db.categories.bulkAdd(newCats);
 
-          await loadAllData();
-          await renderWeekStripCalendar();
-          renderSubCategoryQuickPills();
-          await renderTodayRecords();
-          showToast('資料庫已成功還原！', 'success');
-          closeBackupModal();
-        } catch (err) {
-          console.error(err);
-          showToast('匯入失敗，檔案損壞', 'error');
+            const curAccs = await db.accounts.toArray();
+            const curAccIds = new Set(curAccs.map(a => a.id));
+            const newAccs = json.accounts.filter(a => !curAccIds.has(a.id));
+            if (newAccs.length > 0) await db.accounts.bulkAdd(newAccs);
+
+            const curRecs = await db.records.toArray();
+            const curRecIds = new Set(curRecs.map(r => r.id));
+            const newRecs = json.records.filter(r => !curRecIds.has(r.id));
+            if (newRecs.length > 0) await db.records.bulkAdd(newRecs);
+
+            if (json.recurring) {
+              const curRecur = await db.recurring.toArray();
+              const curRecurIds = new Set(curRecur.map(rc => rc.id));
+              const newRecur = json.recurring.filter(rc => !curRecurIds.has(rc.id));
+              if (newRecur.length > 0) await db.recurring.bulkAdd(newRecur);
+            }
+
+            if (json.templates) {
+              const curTpl = await db.templates.toArray();
+              const curTplIds = new Set(curTpl.map(t => t.id));
+              const newTpl = json.templates.filter(t => !curTplIds.has(t.id));
+              if (newTpl.length > 0) await db.templates.bulkAdd(newTpl);
+            }
+          }
+        });
+
+        closeImportConfirmModal();
+        closeBackupModal();
+
+        // 重新載入記憶體與 UI
+        await loadAllData();
+        await renderWeekStripCalendar();
+        renderSubCategoryQuickPills();
+        await renderTodayRecords();
+
+        if (mode === 'overwrite') {
+          showToast('資料庫已成功完整覆蓋還原！', 'success');
+        } else {
+          showToast('資料庫已成功合併匯入！', 'success');
         }
-      };
-      reader.readAsText(file);
+      } catch (err) {
+        console.error('Import Error:', err);
+        showToast('還原資料庫時發生錯誤：' + err.message, 'error');
+      }
     }
 
     function switchView(view) {
