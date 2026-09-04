@@ -1422,6 +1422,18 @@
       lucide.createIcons();
     }
 
+    function confirmDeleteTemplate(id) {
+      document.getElementById('confirm-modal-msg').textContent = '確定要刪除這個常用支出模板嗎？';
+      document.getElementById('confirm-modal').classList.remove('hidden');
+      document.getElementById('btn-confirm-delete').onclick = async () => {
+        await db.templates.delete(id);
+        showToast('已刪除模板', 'success');
+        closeConfirmModal();
+        await renderTemplateList();
+      };
+      lucide.createIcons();
+    }
+
     function closeConfirmModal() {
       pendingDeleteId = null;
       document.getElementById('confirm-modal').classList.add('hidden');
@@ -1692,12 +1704,13 @@
 
     async function exportJSONBackup() {
       const data = {
-        schemaVersion: 1,
+        schemaVersion: 2,
         exportedAt: new Date().toISOString(),
         categories: await db.categories.toArray(),
         accounts: await db.accounts.toArray(),
         records: await db.records.toArray(),
-        recurring: await db.recurring.toArray()
+        recurring: await db.recurring.toArray(),
+        templates: await db.templates.toArray()
       };
 
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -1723,16 +1736,18 @@
             return;
           }
 
-          await db.transaction('rw', db.categories, db.accounts, db.records, db.recurring, async () => {
+          await db.transaction('rw', db.categories, db.accounts, db.records, db.recurring, db.templates, async () => {
             await db.categories.clear();
             await db.accounts.clear();
             await db.records.clear();
             await db.recurring.clear();
+            await db.templates.clear();
 
             await db.categories.bulkAdd(json.categories);
             await db.accounts.bulkAdd(json.accounts);
             await db.records.bulkAdd(json.records);
             if (json.recurring) await db.recurring.bulkAdd(json.recurring);
+            if (json.templates) await db.templates.bulkAdd(json.templates);
           });
 
           await loadAllData();
@@ -2130,6 +2145,246 @@
       await checkAndApplyRecurring();
       await renderWeekStripCalendar();
       await renderTodayRecords();
+    }
+
+    /**
+     * =========================================================================
+     * 常用支出模板 (Expense Quick Templates)
+     * =========================================================================
+     */
+    async function openTemplateModal() {
+      document.getElementById('template-modal').classList.remove('hidden');
+      await renderTemplateList();
+      lucide.createIcons();
+    }
+
+    function closeTemplateModal() {
+      document.getElementById('template-modal').classList.add('hidden');
+    }
+
+    async function renderTemplateList() {
+      const container = document.getElementById('template-list-container');
+      const list = await db.templates.toArray();
+
+      if (!list || list.length === 0) {
+        container.innerHTML = `
+          <div class="py-10 text-center space-y-2">
+            <div class="w-12 h-12 rounded-full bg-zinc-800/80 flex items-center justify-center mx-auto text-amber-400/60">
+              <i data-lucide="zap" class="w-6 h-6"></i>
+            </div>
+            <div class="text-sm font-bold text-zinc-400">目前尚無常用模板</div>
+            <div class="text-xs text-zinc-500">點擊右上角「新增模板」可建立常用支出組合（如：加油、咖啡、午餐）</div>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = list.map(t => {
+        const pCat = state.allCategories.find(c => c.id === t.parentCategoryId);
+        const sCat = t.subCategoryId ? state.allCategories.find(c => c.id === t.subCategoryId) : null;
+        const acc = state.allAccounts.find(a => a.id === t.accountId);
+
+        const catName = pCat ? (sCat ? `${pCat.name} · ${sCat.name}` : pCat.name) : '未指定分類';
+        const accName = acc ? acc.name : '未指定帳戶';
+
+        return `
+          <div class="p-3 bg-zinc-900 hover:bg-zinc-800/70 active:bg-zinc-800 rounded-2xl border border-zinc-800 transition-all cursor-pointer space-y-2 select-none" onclick="applyTemplate(${t.id})">
+            <div class="flex items-center justify-between pb-1 border-b border-zinc-800/80">
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center flex-shrink-0">
+                  <img src="${pCat?.icon || 'asset/categories-food.svg'}" class="w-4 h-4 object-contain">
+                </div>
+                <div>
+                  <div class="text-sm font-bold text-zinc-100">${t.name}</div>
+                  <div class="text-xs text-zinc-400">${catName}</div>
+                </div>
+              </div>
+              <div class="flex items-center gap-1.5" onclick="event.stopPropagation()">
+                <button onclick="openTemplateFormModal(${t.id})" class="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-amber-400" title="編輯模板">
+                  <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                </button>
+                <button onclick="confirmDeleteTemplate(${t.id})" class="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-red-400" title="刪除模板">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between text-xs pt-0.5">
+              <div class="flex items-center gap-2 text-zinc-400">
+                <span class="flex items-center gap-1 px-2 py-0.5 rounded-md bg-zinc-800 border border-zinc-700/60">
+                  <i data-lucide="wallet" class="w-3 h-3 text-zinc-400"></i>
+                  ${accName}
+                </span>
+                ${t.note ? `<span class="truncate max-w-[120px] text-zinc-400">備註: ${t.note}</span>` : ''}
+              </div>
+              <div class="font-mono font-bold text-amber-400">
+                ${t.defaultAmount > 0 ? `NT$ ${t.defaultAmount.toLocaleString()}` : '<span class="text-zinc-500 text-xs font-normal">每次輸入金額</span>'}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    async function applyTemplate(templateId) {
+      const t = await db.templates.get(templateId);
+      if (!t) return;
+
+      closeTemplateModal();
+
+      // 1. 切換為支出模式
+      switchType('expense');
+
+      // 2. 套用主分類
+      const pCat = state.allCategories.find(c => c.id === t.parentCategoryId && !c.isArchived);
+      if (pCat) {
+        setSelectedParentCategory(pCat);
+      }
+
+      // 3. 套用子分類
+      const sCat = t.subCategoryId ? state.allCategories.find(c => c.id === t.subCategoryId && !c.isArchived) : null;
+      setSelectedSubCategory(sCat);
+
+      // 4. 套用帳戶
+      const acc = state.allAccounts.find(a => a.id === t.accountId && !a.isArchived);
+      if (acc) {
+        setSelectedAccount(acc);
+      }
+
+      // 5. 帶入備註
+      document.getElementById('input-note').value = t.note || '';
+
+      // 6. 帶入金額與鍵盤處理
+      if (t.defaultAmount && t.defaultAmount > 0) {
+        state.calcExpression = String(t.defaultAmount);
+        document.getElementById('card-display-amount').textContent = state.calcExpression;
+        showToast(`已套用模板「${t.name}」 (NT$ ${t.defaultAmount})`, 'success');
+      } else {
+        state.calcExpression = '0';
+        document.getElementById('card-display-amount').textContent = state.calcExpression;
+        // 若未預設金額，自動開啟計算機鍵盤讓使用者輸入
+        openCalculatorSheet();
+        showToast(`已套用模板「${t.name}」，請輸入金額`, 'info');
+      }
+    }
+
+    function onTemplateParentCatChanged(parentId, targetSubCatId = null) {
+      const sSelect = document.getElementById('form-tpl-sub-cat');
+      const pIdNum = parseInt(parentId, 10);
+      const subs = state.allCategories.filter(c => c.parentId === pIdNum && !c.isArchived);
+
+      sSelect.innerHTML = '<option value="">無 (選填)</option>' + subs.map(s => `
+        <option value="${s.id}">${s.name}</option>
+      `).join('');
+
+      if (targetSubCatId && subs.some(s => s.id === targetSubCatId)) {
+        sSelect.value = targetSubCatId;
+      } else {
+        sSelect.value = '';
+      }
+    }
+
+    async function openTemplateFormModal(templateId = null) {
+      // 帳戶選單
+      const accSelect = document.getElementById('form-tpl-account');
+      const accounts = state.allAccounts.filter(a => !a.isArchived);
+      accSelect.innerHTML = accounts.map(a => `
+        <option value="${a.id}">${a.name} (${a.groupName})</option>
+      `).join('');
+
+      // 主分類選單（支出）
+      const pSelect = document.getElementById('form-tpl-parent-cat');
+      const parents = state.allCategories.filter(
+        c => c.type === 'expense' && c.parentId === null && !c.isArchived
+      );
+      pSelect.innerHTML = parents.map(p => `
+        <option value="${p.id}">${p.name}</option>
+      `).join('');
+
+      if (templateId) {
+        const t = await db.templates.get(templateId);
+        if (!t) return;
+
+        document.getElementById('template-form-title').textContent = '編輯支出模板';
+        document.getElementById('form-tpl-id').value = t.id;
+        document.getElementById('form-tpl-name').value = t.name;
+        document.getElementById('form-tpl-amount').value = t.defaultAmount > 0 ? t.defaultAmount : '';
+        document.getElementById('form-tpl-note').value = t.note || '';
+
+        accSelect.value = t.accountId;
+        pSelect.value = t.parentCategoryId;
+        onTemplateParentCatChanged(t.parentCategoryId, t.subCategoryId);
+      } else {
+        document.getElementById('template-form-title').textContent = '新增支出模板';
+        document.getElementById('form-tpl-id').value = '';
+        document.getElementById('form-tpl-name').value = '';
+        document.getElementById('form-tpl-amount').value = '';
+        document.getElementById('form-tpl-note').value = '';
+
+        if (state.selectedAccount) {
+          accSelect.value = state.selectedAccount.id;
+        }
+        if (parents.length > 0) {
+          pSelect.value = parents[0].id;
+          onTemplateParentCatChanged(parents[0].id);
+        }
+      }
+
+      document.getElementById('template-form-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeTemplateFormModal() {
+      document.getElementById('template-form-modal').classList.add('hidden');
+    }
+
+    async function saveTemplateForm() {
+      const tplIdStr = document.getElementById('form-tpl-id').value;
+      const name = document.getElementById('form-tpl-name').value.trim();
+      const accId = parseInt(document.getElementById('form-tpl-account').value, 10);
+      const parentCatId = parseInt(document.getElementById('form-tpl-parent-cat').value, 10);
+      const subCatVal = document.getElementById('form-tpl-sub-cat').value;
+      const subCatId = subCatVal ? parseInt(subCatVal, 10) : null;
+      const defaultAmount = Math.max(0, parseFloat(document.getElementById('form-tpl-amount').value) || 0);
+      const note = document.getElementById('form-tpl-note').value.trim();
+
+      if (!name) {
+        showToast('請輸入模板名稱', 'error');
+        return;
+      }
+      if (!accId) {
+        showToast('請選擇付款帳戶', 'error');
+        return;
+      }
+      if (!parentCatId) {
+        showToast('請選擇支出主分類', 'error');
+        return;
+      }
+
+      const templateData = {
+        name,
+        type: 'expense',
+        accountId: accId,
+        parentCategoryId: parentCatId,
+        subCategoryId: subCatId,
+        defaultAmount,
+        note
+      };
+
+      if (tplIdStr) {
+        const id = parseInt(tplIdStr, 10);
+        await db.templates.update(id, templateData);
+        showToast(`已成功修改模板「${name}」`, 'success');
+      } else {
+        await db.templates.add(templateData);
+        showToast(`已成功建立模板「${name}」`, 'success');
+      }
+
+      closeTemplateFormModal();
+      await renderTemplateList();
     }
 
     /**

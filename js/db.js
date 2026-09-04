@@ -8,6 +8,9 @@
       records: '++id, type, date, parentCategoryId, subCategoryId, accountId, targetAccountId, recurringId, createdAt',
       recurring: '++id, type, accountId, parentCategoryId, subCategoryId, frequency, nextRunDate, isActive'
     });
+    db.version(2).stores({
+      templates: '++id, name, type, accountId, parentCategoryId, subCategoryId'
+    });
 
     const AVAILABLE_ICONS = [
       'asset/categories-food.svg',
