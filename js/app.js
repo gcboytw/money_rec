@@ -16,7 +16,8 @@
       categoryManageType: 'expense',
       categoryFormLevel: 'parent', // 'parent' | 'sub'
       chartInstance: null,
-      editRecordType: 'expense'
+      editRecordType: 'expense',
+      recurringFormType: 'expense'
     };
 
     function getTodayString() {
@@ -61,6 +62,7 @@
     async function initApp() {
       try {
         await initDatabaseSeeds();
+        await checkAndApplyRecurring();
         await loadAllData();
         setupDefaultSelections();
         renderWeekStripCalendar();
@@ -1181,6 +1183,11 @@
               <div class="flex items-center gap-2">
                 <img src="${p.icon}" class="w-5 h-5 object-contain">
                 <span class="text-xs font-bold text-zinc-200">${p.name}</span>
+                ${p.type === 'expense' ? `
+                  <span class="text-xs px-2 py-0.5 rounded-full ${p.budgetMonthly > 0 ? 'bg-amber-950/60 text-amber-400 border border-amber-800/60' : 'bg-zinc-800 text-zinc-500'} font-mono">
+                    ${p.budgetMonthly > 0 ? `預算 NT$ ${p.budgetMonthly.toLocaleString()}` : '未設預算'}
+                  </span>
+                ` : ''}
                 ${p.isArchived ? '<span class="text-xs px-1.5 py-0.5 bg-zinc-700 text-zinc-400 rounded">已封存</span>' : ''}
               </div>
               <div class="flex items-center gap-1.5">
@@ -1234,15 +1241,22 @@
       const pBtn = document.getElementById('form-level-parent');
       const sBtn = document.getElementById('form-level-sub');
       const parentSelectWrap = document.getElementById('form-cat-parent-select-wrap');
+      const budgetWrap = document.getElementById('form-cat-budget-wrap');
 
       if (level === 'parent') {
         pBtn.className = 'flex-1 py-1 rounded-lg text-xs font-bold bg-amber-500 text-zinc-950';
         sBtn.className = 'flex-1 py-1 rounded-lg text-xs font-bold text-zinc-400';
         parentSelectWrap.classList.add('hidden');
+        if (state.categoryManageType === 'expense') {
+          budgetWrap?.classList.remove('hidden');
+        } else {
+          budgetWrap?.classList.add('hidden');
+        }
       } else {
         sBtn.className = 'flex-1 py-1 rounded-lg text-xs font-bold bg-amber-500 text-zinc-950';
         pBtn.className = 'flex-1 py-1 rounded-lg text-xs font-bold text-zinc-400';
         parentSelectWrap.classList.remove('hidden');
+        budgetWrap?.classList.add('hidden');
       }
     }
 
@@ -1266,6 +1280,8 @@
     function openNewCategoryForm(parentId = null) {
       document.getElementById('form-cat-id').value = '';
       document.getElementById('form-cat-name').value = '';
+      const budgetInput = document.getElementById('form-cat-budget');
+      if (budgetInput) budgetInput.value = '0';
       populateParentCategorySelect(parentId);
 
       if (parentId) {
@@ -1294,6 +1310,8 @@
 
       document.getElementById('form-cat-id').value = cat.id;
       document.getElementById('form-cat-name').value = cat.name;
+      const budgetInput = document.getElementById('form-cat-budget');
+      if (budgetInput) budgetInput.value = cat.budgetMonthly || 0;
       populateParentCategorySelect(cat.parentId);
 
       if (cat.parentId !== null) {
@@ -1327,6 +1345,9 @@
       const parentSelectVal = document.getElementById('form-cat-parent-id').value;
       const parentId = isSub && parentSelectVal ? parseInt(parentSelectVal, 10) : null;
       const icon = document.querySelector('input[name="cat-icon-choice"]:checked')?.value || 'asset/categories-money.svg';
+      const budgetVal = (!isSub && state.categoryManageType === 'expense')
+        ? Math.max(0, parseFloat(document.getElementById('form-cat-budget')?.value) || 0)
+        : 0;
 
       if (!name) {
         showToast('請輸入分類名稱', 'error');
@@ -1340,11 +1361,15 @@
 
       if (catIdStr) {
         const catId = parseInt(catIdStr, 10);
-        await db.categories.update(catId, {
+        const updatePayload = {
           name,
           parentId,
           icon
-        });
+        };
+        if (!isSub) {
+          updatePayload.budgetMonthly = budgetVal;
+        }
+        await db.categories.update(catId, updatePayload);
         showToast(`已成功修改分類「${name}」`, 'success');
       } else {
         await db.categories.add({
@@ -1353,7 +1378,7 @@
           parentId: parentId,
           icon: icon,
           color: '#f59e0b',
-          budgetMonthly: 0,
+          budgetMonthly: budgetVal,
           isArchived: false
         });
         showToast(`已成功新增「${name}」`, 'success');
@@ -1371,6 +1396,7 @@
     let pendingDeleteId = null;
     function confirmDeleteRecord(id) {
       pendingDeleteId = id;
+      document.getElementById('confirm-modal-msg').textContent = '確定要刪除這筆資料嗎？此動作無法復原。';
       document.getElementById('confirm-modal').classList.remove('hidden');
       document.getElementById('btn-confirm-delete').onclick = async () => {
         if (pendingDeleteId) {
@@ -1380,6 +1406,18 @@
           await renderWeekStripCalendar();
           await renderTodayRecords();
         }
+      };
+      lucide.createIcons();
+    }
+
+    function confirmDeleteRecurring(id) {
+      document.getElementById('confirm-modal-msg').textContent = '確定要刪除這筆固定收支排程嗎？';
+      document.getElementById('confirm-modal').classList.remove('hidden');
+      document.getElementById('btn-confirm-delete').onclick = async () => {
+        await db.recurring.delete(id);
+        showToast('已刪除固定收支排程', 'success');
+        closeConfirmModal();
+        await renderRecurringList();
       };
       lucide.createIcons();
     }
@@ -1395,7 +1433,7 @@
     async function openReportsModal() {
       const allRecords = await db.records.toArray();
       const now = new Date();
-      const curYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const curYearMonth = state.selectedDate ? state.selectedDate.slice(0, 7) : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
       let monthExp = 0;
       let monthInc = 0;
@@ -1447,8 +1485,178 @@
         }
       });
 
+      // 渲染報表內的本月預算達成與主分類進度
+      await renderReportBudgets(curYearMonth);
+
       document.getElementById('reports-modal').classList.remove('hidden');
       lucide.createIcons();
+    }
+
+    async function renderReportBudgets(currentYearMonth) {
+      const labelEl = document.getElementById('report-budget-month-label');
+      const pctEl = document.getElementById('report-budget-overall-percent');
+      const barEl = document.getElementById('report-budget-overall-bar');
+      const spentEl = document.getElementById('report-budget-overall-spent');
+      const totalEl = document.getElementById('report-budget-overall-total');
+      const remainEl = document.getElementById('report-budget-overall-remaining');
+      const listEl = document.getElementById('report-budget-category-list');
+
+      const [year, month] = currentYearMonth.split('-');
+      if (labelEl) labelEl.textContent = `${year}年 ${parseInt(month, 10)}月 預算達成狀況`;
+
+      // 查詢當月所有支出
+      const monthStart = `${currentYearMonth}-01`;
+      const monthEnd = `${currentYearMonth}-31`;
+      const monthRecords = await db.records
+        .where('date')
+        .between(monthStart, monthEnd, true, true)
+        .filter(r => r.type === 'expense')
+        .toArray();
+
+      const catSpentMap = {};
+      let totalSpent = 0;
+      for (const r of monthRecords) {
+        if (r.parentCategoryId) {
+          catSpentMap[r.parentCategoryId] = (catSpentMap[r.parentCategoryId] || 0) + r.amount;
+        }
+        totalSpent += r.amount;
+      }
+
+      const expenseParents = state.allCategories.filter(
+        c => c.type === 'expense' && c.parentId === null && !c.isArchived
+      );
+
+      let totalBudget = 0;
+      expenseParents.forEach(c => {
+        totalBudget += (c.budgetMonthly || 0);
+      });
+
+      if (spentEl) spentEl.textContent = `NT$ ${totalSpent.toLocaleString()}`;
+      if (totalEl) totalEl.textContent = totalBudget > 0 ? `NT$ ${totalBudget.toLocaleString()}` : '未設預算';
+
+      if (totalBudget > 0) {
+        const overallRatio = totalSpent / totalBudget;
+        const overallPct = Math.round(overallRatio * 100);
+        if (pctEl) pctEl.textContent = `${overallPct}%`;
+
+        const displayWidth = Math.min(100, Math.max(0, overallPct));
+        if (barEl) barEl.style.width = `${displayWidth}%`;
+
+        if (overallPct > 100) {
+          if (barEl) barEl.className = 'h-full bg-red-500 rounded-full transition-all duration-300';
+          if (pctEl) pctEl.className = 'text-xs font-mono font-extrabold text-red-400';
+          if (remainEl) {
+            remainEl.textContent = `超支 NT$ ${(totalSpent - totalBudget).toLocaleString()}`;
+            remainEl.className = 'text-sm font-bold font-mono text-red-400 mt-0.5';
+          }
+        } else if (overallPct > 80) {
+          if (barEl) barEl.className = 'h-full bg-orange-500 rounded-full transition-all duration-300';
+          if (pctEl) pctEl.className = 'text-xs font-mono font-extrabold text-orange-400';
+          if (remainEl) {
+            remainEl.textContent = `剩餘 NT$ ${(totalBudget - totalSpent).toLocaleString()}`;
+            remainEl.className = 'text-sm font-bold font-mono text-orange-400 mt-0.5';
+          }
+        } else {
+          if (barEl) barEl.className = 'h-full bg-emerald-500 rounded-full transition-all duration-300';
+          if (pctEl) pctEl.className = 'text-xs font-mono font-extrabold text-emerald-400';
+          if (remainEl) {
+            remainEl.textContent = `剩餘 NT$ ${(totalBudget - totalSpent).toLocaleString()}`;
+            remainEl.className = 'text-sm font-bold font-mono text-emerald-400 mt-0.5';
+          }
+        }
+      } else {
+        if (pctEl) pctEl.textContent = '--';
+        if (barEl) {
+          barEl.style.width = totalSpent > 0 ? '100%' : '0%';
+          barEl.className = 'h-full bg-zinc-600 rounded-full transition-all duration-300';
+        }
+        if (remainEl) {
+          remainEl.textContent = '--';
+          remainEl.className = 'text-sm font-bold font-mono text-zinc-400 mt-0.5';
+        }
+      }
+
+      if (!listEl) return;
+
+      if (expenseParents.length === 0) {
+        listEl.innerHTML = `<div class="p-4 text-center text-xs text-zinc-500">尚無支出主分類</div>`;
+        return;
+      }
+
+      listEl.innerHTML = expenseParents.map(c => {
+        const spent = catSpentMap[c.id] || 0;
+        const budget = c.budgetMonthly || 0;
+
+        let pctText = '--';
+        let barClass = 'bg-zinc-600';
+        let statusBadge = '';
+        let barWidth = 0;
+
+        if (budget > 0) {
+          const ratio = spent / budget;
+          const pct = Math.round(ratio * 100);
+          pctText = `${pct}%`;
+          barWidth = Math.min(100, pct);
+
+          if (pct > 100) {
+            barClass = 'bg-red-500';
+            statusBadge = `
+              <span class="text-xs px-2 py-0.5 rounded-md bg-red-950/80 text-red-400 border border-red-800/80 font-bold flex items-center gap-1">
+                <i data-lucide="alert-triangle" class="w-3 h-3"></i>
+                超支 NT$ ${(spent - budget).toLocaleString()}
+              </span>
+            `;
+          } else if (pct > 80) {
+            barClass = 'bg-orange-500';
+            statusBadge = `
+              <span class="text-xs px-2 py-0.5 rounded-md bg-orange-950/80 text-orange-400 border border-orange-800/80 font-bold">
+                已達 ${pct}% (剩餘 NT$ ${(budget - spent).toLocaleString()})
+              </span>
+            `;
+          } else {
+            barClass = 'bg-emerald-500';
+            statusBadge = `
+              <span class="text-xs px-2 py-0.5 rounded-md bg-emerald-950/60 text-emerald-300 border border-emerald-800/60 font-medium">
+                剩餘 NT$ ${(budget - spent).toLocaleString()}
+              </span>
+            `;
+          }
+        } else {
+          barWidth = spent > 0 ? 100 : 0;
+          barClass = 'bg-zinc-700';
+          statusBadge = `
+            <span class="text-xs px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-400 font-medium">
+              未設上限
+            </span>
+          `;
+        }
+
+        return `
+          <div class="p-3 bg-zinc-900 rounded-2xl border border-zinc-800 space-y-2">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <img src="${c.icon}" class="w-5 h-5 object-contain">
+                <span class="text-xs font-bold text-zinc-200">${c.name}</span>
+              </div>
+              <div class="text-right">
+                <span class="text-xs font-mono font-bold text-amber-400">NT$ ${spent.toLocaleString()}</span>
+                <span class="text-xs text-zinc-500 font-mono"> / ${budget > 0 ? `NT$ ${budget.toLocaleString()}` : '無限制'}</span>
+              </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="w-full h-2 bg-zinc-800 rounded-full overflow-hidden">
+              <div class="h-full ${barClass} rounded-full transition-all duration-300" style="width: ${barWidth}%"></div>
+            </div>
+
+            <!-- Status Label (No edit button as requested) -->
+            <div class="flex items-center justify-between pt-0.5">
+              ${statusBadge}
+              <span class="text-xs font-mono font-bold ${budget > 0 && spent > budget ? 'text-red-400' : 'text-zinc-400'}">${pctText}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
     }
 
     function closeReportsModal() {
@@ -1543,6 +1751,385 @@
 
     function switchView(view) {
       // Home view handler
+    }
+
+    /**
+     * =========================================================================
+     * Phase 3: 固定收支排程 (Recurring Transactions & Scheduler - 純每月模式)
+     * =========================================================================
+     */
+    function getNextMonthlyDate(currentDateStr, dayOfMonth) {
+      const parts = currentDateStr.split('-').map(Number);
+      let y = parts[0];
+      let m = parts[1]; // 1-12
+      m += 1;
+      if (m > 12) {
+        y += 1;
+        m = 1;
+      }
+      const maxDay = new Date(y, m, 0).getDate();
+      const actualDay = Math.min(dayOfMonth, maxDay);
+      return `${y}-${String(m).padStart(2, '0')}-${String(actualDay).padStart(2, '0')}`;
+    }
+
+    function calculateInitialNextRunDate(targetDay) {
+      const today = new Date();
+      const curYear = today.getFullYear();
+      const curMonth = today.getMonth() + 1;
+      const curDate = today.getDate();
+
+      const dom = parseInt(targetDay, 10) || 1;
+      const maxDayThisMonth = new Date(curYear, curMonth, 0).getDate();
+      const actualThisMonthDay = Math.min(dom, maxDayThisMonth);
+
+      if (curDate <= actualThisMonthDay) {
+        return `${curYear}-${String(curMonth).padStart(2, '0')}-${String(actualThisMonthDay).padStart(2, '0')}`;
+      } else {
+        let nextM = curMonth + 1;
+        let nextY = curYear;
+        if (nextM > 12) {
+          nextM = 1;
+          nextY += 1;
+        }
+        const maxDayNextMonth = new Date(nextY, nextM, 0).getDate();
+        const actualNextMonthDay = Math.min(dom, maxDayNextMonth);
+        return `${nextY}-${String(nextM).padStart(2, '0')}-${String(actualNextMonthDay).padStart(2, '0')}`;
+      }
+    }
+
+    /**
+     * 啟動時自動檢查並補登固定收支
+     */
+    async function checkAndApplyRecurring() {
+      try {
+        const todayStr = getTodayString();
+        const recurringList = await db.recurring.filter(r => r.isActive === true || r.isActive === 1).toArray();
+        if (!recurringList || recurringList.length === 0) return;
+
+        let generatedCount = 0;
+
+        for (const rule of recurringList) {
+          if (!rule.nextRunDate) continue;
+
+          let currentRunDate = rule.nextRunDate;
+          let ruleModified = false;
+          let safetyLoop = 0;
+
+          while (currentRunDate <= todayStr && safetyLoop < 36) {
+            safetyLoop++;
+
+            // 嚴密防呆：檢查同一個 recurringId 與日期是否已存在 records
+            const existing = await db.records
+              .where('recurringId')
+              .equals(rule.id)
+              .filter(r => r.date === currentRunDate)
+              .first();
+
+            if (!existing) {
+              const newRec = {
+                type: rule.type,
+                amount: rule.amount,
+                parentCategoryId: rule.parentCategoryId,
+                subCategoryId: rule.subCategoryId || null,
+                accountId: rule.accountId,
+                targetAccountId: null,
+                date: currentRunDate,
+                note: rule.note ? `${rule.note} (固定收支)` : '固定收支自動記帳',
+                recurringId: rule.id,
+                createdAt: Date.now()
+              };
+              await db.records.add(newRec);
+              generatedCount++;
+            }
+
+            rule.lastGeneratedDate = currentRunDate;
+            ruleModified = true;
+
+            // 每月推進
+            currentRunDate = getNextMonthlyDate(currentRunDate, rule.dayOfMonth || 1);
+          }
+
+          if (ruleModified) {
+            rule.nextRunDate = currentRunDate;
+            await db.recurring.put(rule);
+          }
+        }
+
+        if (generatedCount > 0) {
+          showToast(`已自動完成 ${generatedCount} 筆固定收支入帳！`, 'success');
+        }
+      } catch (err) {
+        console.error('checkAndApplyRecurring error:', err);
+      }
+    }
+
+    async function openRecurringModal() {
+      document.getElementById('recurring-modal').classList.remove('hidden');
+      await renderRecurringList();
+      lucide.createIcons();
+    }
+
+    function closeRecurringModal() {
+      document.getElementById('recurring-modal').classList.add('hidden');
+    }
+
+    async function renderRecurringList() {
+      const container = document.getElementById('recurring-list-container');
+      const list = await db.recurring.toArray();
+
+      if (list.length === 0) {
+        container.innerHTML = `
+          <div class="py-10 text-center space-y-2">
+            <div class="w-12 h-12 rounded-full bg-zinc-800/80 flex items-center justify-center mx-auto text-zinc-500">
+              <i data-lucide="repeat" class="w-6 h-6"></i>
+            </div>
+            <div class="text-sm font-bold text-zinc-400">目前尚無固定收支排程</div>
+            <div class="text-xs text-zinc-500">點擊右上角「新增排程」可建立每月房租、薪資等定期收支</div>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = list.map(r => {
+        const pCat = state.allCategories.find(c => c.id === r.parentCategoryId);
+        const sCat = r.subCategoryId ? state.allCategories.find(c => c.id === r.subCategoryId) : null;
+        const acc = state.allAccounts.find(a => a.id === r.accountId);
+
+        const isExpense = r.type === 'expense';
+        const typeBadge = isExpense
+          ? '<span class="text-xs px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 font-bold border border-amber-500/30">支出</span>'
+          : '<span class="text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">收入</span>';
+
+        const freqLabel = `每月 ${r.dayOfMonth || 1} 號`;
+        const catName = pCat ? (sCat ? `${pCat.name} · ${sCat.name}` : pCat.name) : '未指定分類';
+        const accName = acc ? acc.name : '未指定帳戶';
+
+        return `
+          <div class="p-3 bg-zinc-900 rounded-2xl border border-zinc-800 ${!r.isActive ? 'opacity-60' : ''} space-y-2">
+            <div class="flex items-center justify-between pb-1.5 border-b border-zinc-800/80">
+              <div class="flex items-center gap-2">
+                ${typeBadge}
+                <div class="flex items-center gap-1.5">
+                  <img src="${pCat?.icon || 'asset/categories-food.svg'}" class="w-4 h-4 object-contain">
+                  <span class="text-xs font-bold text-zinc-200">${catName}</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-mono font-bold ${isExpense ? 'text-amber-400' : 'text-emerald-400'}">NT$ ${r.amount.toLocaleString()}</span>
+                <!-- Active Toggle Switch -->
+                <button onclick="toggleRecurringActive(${r.id})" class="text-xs px-2 py-0.5 rounded-full ${r.isActive ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-700/60' : 'bg-zinc-800 text-zinc-400'}" title="點擊切換啟用狀態">
+                  ${r.isActive ? '啟用中' : '已暫停'}
+                </button>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between text-xs text-zinc-400 pt-0.5">
+              <div class="flex items-center gap-3">
+                <span class="flex items-center gap-1">
+                  <i data-lucide="wallet" class="w-3.5 h-3.5 text-zinc-500"></i>
+                  ${accName}
+                </span>
+                <span class="flex items-center gap-1 text-zinc-300">
+                  <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-400"></i>
+                  ${freqLabel}
+                </span>
+              </div>
+              <div class="flex items-center gap-1">
+                <button onclick="openRecurringFormModal(${r.id})" class="p-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-amber-300" title="編輯">
+                  <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                </button>
+                <button onclick="confirmDeleteRecurring(${r.id})" class="p-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-red-400" title="刪除">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between text-xs text-zinc-500 pt-1 border-t border-zinc-800/40">
+              <span class="truncate max-w-[200px]">${r.note ? `備註：${r.note}` : '無備註'}</span>
+              <span class="font-mono text-zinc-400">下次：${r.nextRunDate || '--'}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    async function toggleRecurringActive(recId) {
+      const rec = await db.recurring.get(recId);
+      if (!rec) return;
+
+      const newStatus = !rec.isActive;
+      await db.recurring.update(recId, { isActive: newStatus });
+      showToast(newStatus ? '已啟用排程' : '已暫停排程', 'success');
+      await renderRecurringList();
+    }
+
+    function switchRecurringFormType(type) {
+      state.recurringFormType = type;
+      const expBtn = document.getElementById('form-rec-tab-exp');
+      const incBtn = document.getElementById('form-rec-tab-inc');
+
+      if (type === 'expense') {
+        expBtn.className = 'flex-1 py-1 rounded-lg text-xs font-bold bg-amber-500 text-zinc-950';
+        incBtn.className = 'flex-1 py-1 rounded-lg text-xs font-bold text-zinc-400';
+      } else {
+        incBtn.className = 'flex-1 py-1 rounded-lg text-xs font-bold bg-emerald-500 text-zinc-950';
+        expBtn.className = 'flex-1 py-1 rounded-lg text-xs font-bold text-zinc-400';
+      }
+
+      populateRecurringCategorySelects();
+    }
+
+    function populateRecurringCategorySelects(selectedParentId = null, selectedSubId = null) {
+      const pSelect = document.getElementById('form-rec-parent-cat');
+      const parents = state.allCategories.filter(
+        c => c.type === state.recurringFormType && c.parentId === null && !c.isArchived
+      );
+
+      pSelect.innerHTML = parents.map(p => `
+        <option value="${p.id}">${p.name}</option>
+      `).join('');
+
+      if (selectedParentId && parents.some(p => p.id === selectedParentId)) {
+        pSelect.value = selectedParentId;
+      } else if (parents.length > 0) {
+        pSelect.value = parents[0].id;
+      }
+
+      onRecurringParentCatChanged(pSelect.value, selectedSubId);
+    }
+
+    function onRecurringParentCatChanged(parentId, targetSubCatId = null) {
+      const sSelect = document.getElementById('form-rec-sub-cat');
+      const pIdNum = parseInt(parentId, 10);
+      const subs = state.allCategories.filter(c => c.parentId === pIdNum && !c.isArchived);
+
+      sSelect.innerHTML = '<option value="">無 (選填)</option>' + subs.map(s => `
+        <option value="${s.id}">${s.name}</option>
+      `).join('');
+
+      if (targetSubCatId && subs.some(s => s.id === targetSubCatId)) {
+        sSelect.value = targetSubCatId;
+      } else {
+        sSelect.value = '';
+      }
+    }
+
+    function updateNextRunDateFromFrequency() {
+      const dateInput = document.getElementById('form-rec-next-run-date');
+      const dayVal = document.getElementById('form-rec-day-of-month')?.value || '1';
+      const calculated = calculateInitialNextRunDate(dayVal);
+      dateInput.value = calculated;
+    }
+
+    async function openRecurringFormModal(recId = null) {
+      // 填入 1-31 日期選項
+      const domSelect = document.getElementById('form-rec-day-of-month');
+      domSelect.innerHTML = Array.from({ length: 31 }, (_, i) => i + 1).map(d => `
+        <option value="${d}">${d} 號</option>
+      `).join('');
+
+      // 填入帳戶選項
+      const accSelect = document.getElementById('form-rec-account');
+      const accounts = state.allAccounts.filter(a => !a.isArchived);
+      accSelect.innerHTML = accounts.map(a => `
+        <option value="${a.id}">${a.name} (${a.groupName})</option>
+      `).join('');
+
+      if (recId) {
+        const rule = await db.recurring.get(recId);
+        if (!rule) return;
+
+        document.getElementById('recurring-form-title').textContent = '編輯固定收支排程';
+        document.getElementById('form-rec-id').value = rule.id;
+        document.getElementById('form-rec-amount').value = rule.amount;
+        document.getElementById('form-rec-note').value = rule.note || '';
+        document.getElementById('form-rec-next-run-date').value = rule.nextRunDate || getTodayString();
+        accSelect.value = rule.accountId;
+
+        switchRecurringFormType(rule.type);
+        populateRecurringCategorySelects(rule.parentCategoryId, rule.subCategoryId);
+        domSelect.value = rule.dayOfMonth || 1;
+      } else {
+        document.getElementById('recurring-form-title').textContent = '新增固定收支排程';
+        document.getElementById('form-rec-id').value = '';
+        document.getElementById('form-rec-amount').value = '';
+        document.getElementById('form-rec-note').value = '';
+
+        switchRecurringFormType('expense');
+        domSelect.value = 1;
+        updateNextRunDateFromFrequency();
+      }
+
+      document.getElementById('recurring-form-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeRecurringFormModal() {
+      document.getElementById('recurring-form-modal').classList.add('hidden');
+    }
+
+    async function saveRecurringForm() {
+      const recIdStr = document.getElementById('form-rec-id').value;
+      const amount = parseFloat(document.getElementById('form-rec-amount').value);
+      const accId = parseInt(document.getElementById('form-rec-account').value, 10);
+      const parentCatId = parseInt(document.getElementById('form-rec-parent-cat').value, 10);
+      const subCatVal = document.getElementById('form-rec-sub-cat').value;
+      const subCatId = subCatVal ? parseInt(subCatVal, 10) : null;
+      const note = document.getElementById('form-rec-note').value.trim();
+      const nextRunDate = document.getElementById('form-rec-next-run-date').value;
+
+      if (!amount || amount <= 0) {
+        showToast('請輸入大於 0 的金額', 'error');
+        return;
+      }
+      if (!accId) {
+        showToast('請選擇帳戶', 'error');
+        return;
+      }
+      if (!parentCatId) {
+        showToast('請選擇主分類', 'error');
+        return;
+      }
+      if (!nextRunDate) {
+        showToast('請設定下次執行日期', 'error');
+        return;
+      }
+
+      const dayOfMonth = parseInt(document.getElementById('form-rec-day-of-month').value, 10) || 1;
+
+      const recordData = {
+        type: state.recurringFormType,
+        amount,
+        parentCategoryId: parentCatId,
+        subCategoryId: subCatId,
+        accountId: accId,
+        frequency: 'monthly',
+        dayOfMonth,
+        dayOfWeek: null,
+        nextRunDate,
+        note,
+        isActive: true
+      };
+
+      if (recIdStr) {
+        const id = parseInt(recIdStr, 10);
+        await db.recurring.update(id, recordData);
+        showToast('已成功更新固定收支排程', 'success');
+      } else {
+        recordData.lastGeneratedDate = null;
+        await db.recurring.add(recordData);
+        showToast('已成功建立固定收支排程', 'success');
+      }
+
+      closeRecurringFormModal();
+      await renderRecurringList();
+      // 新增或編輯後立即執行一次檢查，若已到期立即補登
+      await checkAndApplyRecurring();
+      await renderWeekStripCalendar();
+      await renderTodayRecords();
     }
 
     /**
