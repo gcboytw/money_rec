@@ -26,7 +26,14 @@
       annualBarMetric: 'expense',
       pendingImportJSON: null,
       editRecordType: 'expense',
-      recurringFormType: 'expense'
+      recurringFormType: 'expense',
+      isReady: false,
+      gasUrl: localStorage.getItem('pocket_ledger_gas_url') || '',
+      gasAutoSync: localStorage.getItem('pocket_ledger_gas_auto_sync') === 'true',
+      hasUnsyncedChanges: false,
+      isSyncing: false,
+      syncTimer: null,
+      lastSyncTime: localStorage.getItem('pocket_ledger_gas_last_sync') || ''
     };
 
     function getTodayString() {
@@ -77,6 +84,9 @@
         renderWeekStripCalendar();
         renderSubCategoryQuickPills();
         await renderTodayRecords();
+        initGasSyncModule();
+        setupDexieChangeHooks();
+        state.isReady = true;
         lucide.createIcons();
       } catch (err) {
         console.error('App init error:', err);
@@ -2261,6 +2271,7 @@
      */
     async function openBackupModal() {
       document.getElementById('backup-modal').classList.remove('hidden');
+      renderGasSyncUI();
       const verEl = document.getElementById('app-current-version');
       if (verEl) {
         if ('caches' in window) {
@@ -2546,6 +2557,7 @@
         } else {
           showToast('資料庫已成功合併匯入！', 'success');
         }
+        notifyDataChanged();
       } catch (err) {
         console.error('Import Error:', err);
         showToast('還原資料庫時發生錯誤：' + err.message, 'error');
@@ -2554,6 +2566,303 @@
 
     function switchView(view) {
       // Home view handler
+    }
+
+    /**
+     * =========================================================================
+     * Phase 6: Google Apps Script (GAS) & Google Drive 雲端同步模組
+     * =========================================================================
+     */
+    function initGasSyncModule() {
+      state.gasUrl = localStorage.getItem('pocket_ledger_gas_url') || '';
+      state.gasAutoSync = localStorage.getItem('pocket_ledger_gas_auto_sync') === 'true';
+      state.lastSyncTime = localStorage.getItem('pocket_ledger_gas_last_sync') || '';
+      updateSyncIndicator('idle');
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden' && state.hasUnsyncedChanges && state.gasAutoSync && state.gasUrl) {
+          if (state.syncTimer) {
+            clearTimeout(state.syncTimer);
+            state.syncTimer = null;
+          }
+          triggerGasSync(false);
+        }
+      });
+
+      window.addEventListener('online', () => {
+        if (state.hasUnsyncedChanges && state.gasAutoSync && state.gasUrl) {
+          triggerGasSync(false);
+        } else {
+          updateSyncIndicator(state.hasUnsyncedChanges ? 'dirty' : 'idle');
+        }
+      });
+
+      window.addEventListener('offline', () => {
+        updateSyncIndicator('offline');
+      });
+    }
+
+    function setupDexieChangeHooks() {
+      const tables = [db.records, db.accounts, db.categories, db.recurring, db.templates];
+      tables.forEach(table => {
+        table.hook('creating', function() {
+          if (state.isReady) notifyDataChanged();
+        });
+        table.hook('updating', function() {
+          if (state.isReady) notifyDataChanged();
+        });
+        table.hook('deleting', function() {
+          if (state.isReady) notifyDataChanged();
+        });
+      });
+    }
+
+    function saveGasSettings(manualClick = false) {
+      const urlInput = document.getElementById('gas-sync-url');
+      const autoInput = document.getElementById('gas-sync-auto');
+      if (urlInput) {
+        const val = urlInput.value.trim();
+        state.gasUrl = val;
+        localStorage.setItem('pocket_ledger_gas_url', val);
+      }
+      if (autoInput) {
+        state.gasAutoSync = autoInput.checked;
+        localStorage.setItem('pocket_ledger_gas_auto_sync', autoInput.checked ? 'true' : 'false');
+      }
+      renderGasSyncUI();
+      if (manualClick) {
+        showToast('雲端同步設定已儲存', 'success');
+      }
+    }
+
+    function renderGasSyncUI() {
+      const urlInput = document.getElementById('gas-sync-url');
+      const autoInput = document.getElementById('gas-sync-auto');
+      const lastTimeEl = document.getElementById('gas-sync-last-time');
+      const badgeEl = document.getElementById('gas-sync-badge');
+
+      if (urlInput && urlInput.value !== state.gasUrl) {
+        urlInput.value = state.gasUrl || '';
+      }
+      if (autoInput) {
+        autoInput.checked = !!state.gasAutoSync;
+      }
+      if (lastTimeEl) {
+        if (state.lastSyncTime) {
+          try {
+            const d = new Date(state.lastSyncTime);
+            lastTimeEl.textContent = `最後同步：${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+          } catch(e) {
+            lastTimeEl.textContent = `最後同步：${state.lastSyncTime}`;
+          }
+        } else {
+          lastTimeEl.textContent = '尚未同步';
+        }
+      }
+      if (badgeEl) {
+        if (!state.gasUrl) {
+          badgeEl.textContent = '未設定';
+          badgeEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-800 text-zinc-400 border border-zinc-700';
+        } else if (state.isSyncing) {
+          badgeEl.textContent = '同步中';
+          badgeEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-950 text-amber-300 border border-amber-700 animate-pulse';
+        } else if (state.hasUnsyncedChanges) {
+          badgeEl.textContent = '待同步';
+          badgeEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-yellow-950 text-yellow-300 border border-yellow-700';
+        } else {
+          badgeEl.textContent = '已連線';
+          badgeEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700';
+        }
+      }
+      updateSyncIndicator(state.isSyncing ? 'syncing' : (state.hasUnsyncedChanges ? 'dirty' : 'idle'));
+    }
+
+    function updateSyncIndicator(status) {
+      const syncBtn = document.getElementById('header-sync-btn');
+      const syncIcon = document.getElementById('header-sync-icon');
+      const syncDot = document.getElementById('header-sync-dot');
+      if (!syncBtn || !syncIcon || !syncDot) return;
+
+      if (!state.gasUrl) {
+        syncIcon.setAttribute('data-lucide', 'cloud-off');
+        syncDot.classList.add('hidden');
+        syncBtn.className = 'tap-scale p-2 rounded-xl bg-zinc-800/90 hover:bg-zinc-700/80 border border-zinc-700/60 text-zinc-500 flex items-center justify-center shadow-sm relative';
+        lucide.createIcons();
+        return;
+      }
+
+      if (status === 'syncing') {
+        syncIcon.setAttribute('data-lucide', 'refresh-cw');
+        syncIcon.classList.add('animate-spin', 'text-amber-400');
+        syncDot.classList.add('hidden');
+        syncBtn.className = 'tap-scale p-2 rounded-xl bg-amber-950/40 hover:bg-amber-900/40 border border-amber-600/50 text-amber-300 flex items-center justify-center shadow-sm relative';
+      } else if (status === 'dirty') {
+        syncIcon.setAttribute('data-lucide', 'cloud');
+        syncIcon.classList.remove('animate-spin', 'text-amber-400');
+        syncDot.classList.remove('hidden', 'bg-emerald-500', 'bg-red-500');
+        syncDot.classList.add('bg-amber-400');
+        syncBtn.className = 'tap-scale p-2 rounded-xl bg-zinc-800/90 hover:bg-zinc-700/80 border border-zinc-700/60 text-amber-400 flex items-center justify-center shadow-sm relative';
+      } else if (status === 'offline') {
+        syncIcon.setAttribute('data-lucide', 'cloud-off');
+        syncIcon.classList.remove('animate-spin');
+        syncDot.classList.remove('hidden', 'bg-emerald-500', 'bg-amber-400');
+        syncDot.classList.add('bg-red-500');
+        syncBtn.className = 'tap-scale p-2 rounded-xl bg-zinc-800/90 border border-zinc-700/60 text-red-400 flex items-center justify-center shadow-sm relative';
+      } else {
+        syncIcon.setAttribute('data-lucide', 'cloud');
+        syncIcon.classList.remove('animate-spin', 'text-amber-400');
+        syncDot.classList.remove('hidden', 'bg-amber-400', 'bg-red-500');
+        syncDot.classList.add('bg-emerald-500');
+        syncBtn.className = 'tap-scale p-2 rounded-xl bg-zinc-800/90 hover:bg-zinc-700/80 border border-zinc-700/60 text-emerald-400 flex items-center justify-center shadow-sm relative';
+      }
+      lucide.createIcons();
+    }
+
+    function notifyDataChanged() {
+      state.hasUnsyncedChanges = true;
+      renderGasSyncUI();
+
+      if (!state.gasUrl || !state.gasAutoSync) {
+        return;
+      }
+
+      if (state.syncTimer) {
+        clearTimeout(state.syncTimer);
+      }
+
+      // 防抖 8 秒
+      state.syncTimer = setTimeout(() => {
+        triggerGasSync(false);
+      }, 8000);
+    }
+
+    async function triggerGasSync(manual = false) {
+      if (!state.gasUrl) {
+        if (manual) {
+          showToast('請先填寫 Google Apps Script 網頁應用程式網址', 'info');
+          openBackupModal();
+        }
+        return;
+      }
+
+      if (!navigator.onLine) {
+        if (manual) showToast('目前處於離線狀態，無法同步', 'error');
+        updateSyncIndicator('offline');
+        return;
+      }
+
+      if (state.isSyncing) return;
+
+      const btn = document.getElementById('btn-gas-sync-now');
+      const text = document.getElementById('text-gas-sync-now');
+      const originalText = text ? text.textContent : '立即上傳備份';
+
+      try {
+        state.isSyncing = true;
+        if (text) text.textContent = '同步中...';
+        if (btn) btn.disabled = true;
+        renderGasSyncUI();
+
+        const payload = {
+          schemaVersion: 2,
+          exportedAt: new Date().toISOString(),
+          environment: (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? 'development' : 'production',
+          categories: await db.categories.toArray(),
+          accounts: await db.accounts.toArray(),
+          records: await db.records.toArray(),
+          recurring: await db.recurring.toArray(),
+          templates: await db.templates.toArray()
+        };
+
+        const response = await fetch(state.gasUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        if (result && result.status === 'success') {
+          state.hasUnsyncedChanges = false;
+          state.lastSyncTime = new Date().toISOString();
+          localStorage.setItem('pocket_ledger_gas_last_sync', state.lastSyncTime);
+          if (manual) {
+            showToast('已成功同步備份至 Google Drive！', 'success');
+          }
+        } else {
+          throw new Error(result?.message || '上傳回應未回傳成功');
+        }
+      } catch (err) {
+        console.error('GAS Sync Error:', err);
+        if (manual) {
+          showToast(`雲端同步失敗: ${err.message || err}`, 'error');
+        }
+      } finally {
+        state.isSyncing = false;
+        if (text) text.textContent = originalText;
+        if (btn) btn.disabled = false;
+        renderGasSyncUI();
+      }
+    }
+
+    async function restoreFromGas() {
+      if (!state.gasUrl) {
+        showToast('請先填寫 Google Apps Script 網頁應用程式網址', 'info');
+        return;
+      }
+
+      if (!navigator.onLine) {
+        showToast('目前處於離線狀態，無法下載備份', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('btn-gas-restore-now');
+      const text = document.getElementById('text-gas-restore-now');
+      const originalText = text ? text.textContent : '從 Google Drive 還原';
+
+      try {
+        if (text) text.textContent = '正在拉取...';
+        if (btn) btn.disabled = true;
+
+        const response = await fetch(state.gasUrl, {
+          method: 'GET'
+        });
+
+        const json = await response.json();
+        if (!json || typeof json !== 'object' || !Array.isArray(json.categories) || !Array.isArray(json.accounts) || !Array.isArray(json.records)) {
+          throw new Error('雲端備份資料格式不正確或為空');
+        }
+
+        state.pendingImportJSON = json;
+        const summaryEl = document.getElementById('import-file-summary');
+        if (summaryEl) {
+          const expDate = json.exportedAt ? new Date(json.exportedAt).toLocaleString('zh-TW') : '未知時間';
+          const envTag = json.environment === 'development' ? ' (開發測試版)' : '';
+          summaryEl.innerHTML = `
+            <div class="text-amber-400 font-bold flex items-center gap-1 mb-1">
+              <i data-lucide="cloud" class="w-3.5 h-3.5"></i>
+              <span>來源：Google Drive 雲端備份${envTag}</span>
+            </div>
+            <div><strong>備份時間：</strong>${expDate}</div>
+            <div class="grid grid-cols-2 gap-1 pt-1 text-zinc-400 border-t border-zinc-800">
+              <span>帳戶：${json.accounts.length} 個</span>
+              <span>分類：${json.categories.length} 個</span>
+              <span>記帳：${json.records.length} 筆</span>
+              <span>排程：${(json.recurring || []).length} 筆</span>
+            </div>
+          `;
+        }
+
+        document.getElementById('import-confirm-modal').classList.remove('hidden');
+        lucide.createIcons();
+      } catch (err) {
+        console.error('GAS Restore Error:', err);
+        showToast(`從雲端拉取備份失敗: ${err.message || err}`, 'error');
+      } finally {
+        if (text) text.textContent = originalText;
+        if (btn) btn.disabled = false;
+      }
     }
 
     /**

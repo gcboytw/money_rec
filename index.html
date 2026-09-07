@@ -103,8 +103,12 @@
           </h2>
         </div>
 
-        <!-- Right: Recurring Shortcut & Calendar Picker Button -->
+        <!-- Right: Sync Indicator, Recurring Shortcut & Calendar Picker Button -->
         <div class="flex items-center gap-1.5">
+          <button id="header-sync-btn" onclick="openBackupModal()" title="雲端同步狀態" class="tap-scale p-2 rounded-xl bg-zinc-800/90 hover:bg-zinc-700/80 border border-zinc-700/60 text-zinc-400 flex items-center justify-center shadow-sm relative">
+            <i id="header-sync-icon" data-lucide="cloud" class="w-4 h-4"></i>
+            <span id="header-sync-dot" class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-500 hidden"></span>
+          </button>
           <button onclick="openRecurringModal()" title="固定收支排程" class="tap-scale p-2 rounded-xl bg-zinc-800/90 hover:bg-zinc-700/80 border border-zinc-700/60 text-zinc-300 flex items-center justify-center shadow-sm">
             <i data-lucide="repeat" class="w-4 h-4 text-emerald-400"></i>
           </button>
@@ -872,6 +876,55 @@
       </div>
 
       <div class="py-3 space-y-3 overflow-y-auto custom-scroll">
+        <!-- Google Drive / GAS 雲端自動同步 -->
+        <div class="p-4 bg-gradient-to-b from-zinc-900 to-zinc-900/90 rounded-2xl border border-amber-500/30 space-y-3 shadow-lg">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="p-1.5 rounded-lg bg-amber-500/10 text-amber-400">
+                <i data-lucide="cloud" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <h4 class="text-sm font-bold text-zinc-100">Google Drive 雲端備份</h4>
+                <div id="gas-sync-last-time" class="text-[11px] text-zinc-400">尚未同步</div>
+              </div>
+            </div>
+            <span id="gas-sync-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-800 text-zinc-400 border border-zinc-700">未設定</span>
+          </div>
+
+          <!-- GAS Web App URL 輸入框 -->
+          <div>
+            <label class="text-xs font-semibold text-zinc-400 block mb-1">Google Apps Script 網頁應用程式網址</label>
+            <div class="flex items-center gap-1.5">
+              <input type="url" id="gas-sync-url" placeholder="https://script.google.com/macros/s/.../exec" onchange="saveGasSettings()" class="flex-1 bg-zinc-950 border border-zinc-700/80 rounded-xl px-3 py-1.5 text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-amber-500">
+              <button onclick="saveGasSettings(true)" class="px-2.5 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold border border-zinc-700 tap-scale">儲存</button>
+            </div>
+          </div>
+
+          <!-- 自動同步切換開關 -->
+          <div class="flex items-center justify-between py-1 border-t border-zinc-800/80">
+            <div>
+              <div class="text-xs font-bold text-zinc-200">記帳後背景自動備份</div>
+              <div class="text-[10px] text-zinc-400">異動後防抖 8 秒自動上傳至 Google Drive</div>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="gas-sync-auto" onchange="saveGasSettings()" class="sr-only peer">
+              <div class="w-10 h-5 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+            </label>
+          </div>
+
+          <!-- 動作按鈕：立即上傳 / 從雲端還原 -->
+          <div class="grid grid-cols-2 gap-2 pt-1 border-t border-zinc-800/80">
+            <button id="btn-gas-sync-now" onclick="triggerGasSync(true)" class="py-2 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow tap-scale">
+              <i id="icon-gas-sync-now" data-lucide="upload-cloud" class="w-4 h-4"></i>
+              <span id="text-gas-sync-now">立即上傳備份</span>
+            </button>
+            <button id="btn-gas-restore-now" onclick="restoreFromGas()" class="py-2 px-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold text-xs border border-zinc-700 flex items-center justify-center gap-1.5 tap-scale">
+              <i id="icon-gas-restore-now" data-lucide="cloud-download" class="w-4 h-4 text-sky-400"></i>
+              <span id="text-gas-restore-now">從雲端還原</span>
+            </button>
+          </div>
+        </div>
+
         <!-- 匯出格式: XLSX -->
         <div class="p-3.5 bg-zinc-900 rounded-2xl border border-zinc-800 flex items-center justify-between">
           <div>
