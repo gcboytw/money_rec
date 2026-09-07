@@ -1824,12 +1824,12 @@
             const pct = monthExp > 0 ? ((cat.total / monthExp) * 100).toFixed(1) : '0.0';
             const color = colorPalette[idx % colorPalette.length];
             return `
-              <div class="flex items-center justify-between text-xs py-0.5">
-                <div class="flex items-center gap-2 min-w-0 pr-1">
-                  <span class="w-3 h-3 rounded-sm flex-shrink-0" style="background-color: ${color}"></span>
-                  <span class="text-zinc-200 font-medium truncate text-xs">${cat.name}</span>
+              <div class="flex items-center text-xs py-0.5 pl-4">
+                <div class="flex items-center gap-1.5 w-[80px] min-w-0 pr-1">
+                  <span class="w-2.5 h-2.5 rounded-sm flex-shrink-0" style="background-color: ${color}"></span>
+                  <span class="text-zinc-200 font-medium truncate text-xs" title="${cat.name}">${cat.name}</span>
                 </div>
-                <span class="font-mono text-zinc-400 font-bold text-xs flex-shrink-0">${pct}%</span>
+                <span class="font-mono text-zinc-400 font-bold text-xs flex-shrink-0 text-right w-12">${pct}%</span>
               </div>
             `;
           }).join('');
@@ -2148,12 +2148,12 @@
             const pct = totalYearExp > 0 ? ((amount / totalYearExp) * 100).toFixed(1) : '0.0';
             const color = colorPalette[idx % colorPalette.length];
             return `
-              <div class="flex items-center justify-between text-xs py-0.5">
-                <div class="flex items-center gap-2 min-w-0 pr-1">
-                  <span class="w-3 h-3 rounded-sm flex-shrink-0" style="background-color: ${color}"></span>
-                  <span class="text-zinc-200 font-medium truncate text-xs">${name}</span>
+              <div class="flex items-center text-xs py-0.5 pl-4">
+                <div class="flex items-center gap-1.5 w-[80px] min-w-0 pr-1">
+                  <span class="w-2.5 h-2.5 rounded-sm flex-shrink-0" style="background-color: ${color}"></span>
+                  <span class="text-zinc-200 font-medium truncate text-xs" title="${name}">${name}</span>
                 </div>
-                <span class="font-mono text-zinc-400 font-bold text-xs flex-shrink-0">${pct}%</span>
+                <span class="font-mono text-zinc-400 font-bold text-xs flex-shrink-0 text-right w-12">${pct}%</span>
               </div>
             `;
           }).join('');
