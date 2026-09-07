@@ -121,9 +121,22 @@
         </div>
       </div>
 
-      <!-- 1.2 Week Strip (7 Days: 週一 ~ 週日) -->
-      <div id="week-strip-container" class="grid grid-cols-7 gap-0.5 sm:gap-1 text-center py-1">
-        <!-- Dynamically rendered: 7 day buttons -->
+      <!-- 1.2 Week Strip with Side Nav Buttons -->
+      <div class="flex items-center gap-0.5 sm:gap-1 py-1">
+        <!-- Prev Week Button -->
+        <button type="button" onclick="changeWeek(-1)" title="上一週" class="tap-scale p-1 -ml-1 sm:ml-0 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 transition-colors flex items-center justify-center flex-shrink-0">
+          <i data-lucide="chevron-left" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+        </button>
+
+        <!-- Week Strip (7 Days: 週一 ~ 週日) -->
+        <div id="week-strip-container" class="flex-1 grid grid-cols-7 gap-0.5 sm:gap-1 text-center touch-pan-y select-none transition-all duration-200">
+          <!-- Dynamically rendered: 7 day buttons -->
+        </div>
+
+        <!-- Next Week Button -->
+        <button type="button" onclick="changeWeek(1)" title="下一週" class="tap-scale p-1 -mr-1 sm:mr-0 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 transition-colors flex items-center justify-center flex-shrink-0">
+          <i data-lucide="chevron-right" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+        </button>
       </div>
     </header>
 

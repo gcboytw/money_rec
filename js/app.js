@@ -86,6 +86,7 @@
         await renderTodayRecords();
         initGasSyncModule();
         setupDexieChangeHooks();
+        setupWeekStripGestures();
         state.isReady = true;
         lucide.createIcons();
       } catch (err) {
@@ -185,6 +186,85 @@
       const today = getTodayString();
       await selectDate(today);
       showToast('已切換至今天', 'info');
+    }
+
+    async function changeWeek(offset) {
+      if (!offset) return;
+      const curD = new Date(state.selectedDate + 'T00:00:00');
+      curD.setDate(curD.getDate() + (offset * 7));
+      const y = curD.getFullYear();
+      const m = String(curD.getMonth() + 1).padStart(2, '0');
+      const d = String(curD.getDate()).padStart(2, '0');
+      let targetDateStr = `${y}-${m}-${d}`;
+      const todayStr = getTodayString();
+
+      // 如果切換到未來週，且該週的週一已經超過今天，則提示並阻止
+      if (offset > 0) {
+        const targetWeekDays = getWeekDaysForDate(targetDateStr);
+        const mondayStr = targetWeekDays[0].dateStr;
+        if (mondayStr > todayStr) {
+          showToast('已是最新一週囉', 'info');
+          return;
+        }
+        if (targetDateStr > todayStr) {
+          targetDateStr = todayStr;
+        }
+      }
+
+      // 切換時提供平滑過渡動畫
+      const container = document.getElementById('week-strip-container');
+      if (container) {
+        container.style.opacity = '0.35';
+        container.style.transform = offset > 0 ? 'translateX(-16px)' : 'translateX(16px)';
+      }
+
+      state.selectedDate = targetDateStr;
+      await renderWeekStripCalendar();
+      await renderTodayRecords();
+
+      if (container) {
+        requestAnimationFrame(() => {
+          container.style.transition = 'all 0.22s cubic-bezier(0.16, 1, 0.3, 1)';
+          container.style.opacity = '1';
+          container.style.transform = 'translateX(0)';
+        });
+      }
+    }
+
+    function setupWeekStripGestures() {
+      const container = document.getElementById('week-strip-container');
+      if (!container) return;
+
+      let touchStartX = 0;
+      let touchStartY = 0;
+      let touchStartTime = 0;
+
+      container.addEventListener('touchstart', (e) => {
+        if (!e.touches || e.touches.length === 0) return;
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        touchStartTime = Date.now();
+      }, { passive: true });
+
+      container.addEventListener('touchend', (e) => {
+        if (!e.changedTouches || e.changedTouches.length === 0) return;
+        const touchEndX = e.changedTouches[0].clientX;
+        const touchEndY = e.changedTouches[0].clientY;
+        const diffX = touchEndX - touchStartX;
+        const diffY = touchEndY - touchStartY;
+        const elapsed = Date.now() - touchStartTime;
+
+        // 水平滑動距離 > 35px，且水平位移大於垂直位移（避免與滾動衝突），手勢在 600ms 內完成
+        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 35 && elapsed < 600) {
+          if (diffX < 0) {
+            // 手指由右往左滑 -> 下一週
+            changeWeek(1);
+          } else {
+            // 手指由左往右滑 -> 上一週
+            changeWeek(-1);
+          }
+        }
+      }, { passive: true });
     }
 
     async function onDatePickerChanged(val) {
