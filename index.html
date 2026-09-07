@@ -80,8 +80,8 @@
 </head>
 <body class="bg-[#09090b] text-zinc-100 h-full flex flex-col font-sans antialiased overflow-hidden">
 
-  <!-- Toast Notification Container -->
-  <div id="toast-container" class="fixed top-5 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-2 pointer-events-none w-11/12 max-w-sm"></div>
+  <!-- Toast Notification Container (避開 iPhone 瀏海與動態島) -->
+  <div id="toast-container" class="fixed top-[max(calc(env(safe-area-inset-top)+24px),56px)] left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-2 pointer-events-none w-11/12 max-w-sm"></div>
 
   <!-- App Main Frame -->
   <div class="flex-1 flex flex-col max-w-md w-full mx-auto h-full shadow-2xl relative overflow-hidden bg-[#0c0c0e] border-x border-zinc-800/40">
@@ -425,8 +425,8 @@
   </div>
 
   <!-- Modal 5: Account Management Full Modal -->
-  <div id="account-manage-modal" class="fixed inset-0 z-50 hidden flex items-end justify-center bg-black/60 backdrop-blur-sm">
-    <div onclick="event.stopPropagation()" class="modal-enter w-full max-w-md bg-[#16161a] rounded-t-3xl border-t border-zinc-700/80 p-4 pb-[max(env(safe-area-inset-bottom),20px)] shadow-2xl flex flex-col max-h-[90vh]">
+  <div id="account-manage-modal" class="fixed inset-0 z-50 hidden flex items-end justify-center bg-black/60 backdrop-blur-sm pt-[max(calc(env(safe-area-inset-top)+14px),32px)]">
+    <div onclick="event.stopPropagation()" class="modal-enter w-full max-w-md bg-[#16161a] rounded-t-3xl border-t border-zinc-700/80 p-4 pb-[max(env(safe-area-inset-bottom),20px)] shadow-2xl flex flex-col max-h-full">
       <div class="flex items-center justify-between pb-3 border-b border-zinc-800">
         <h3 class="text-base font-bold text-zinc-100 flex items-center gap-2">
           <i data-lucide="wallet" class="w-5 h-5 text-amber-400"></i>
@@ -447,8 +447,8 @@
   </div>
 
   <!-- Modal 6: Category Management Full Modal -->
-  <div id="category-manage-modal" class="fixed inset-0 z-50 hidden flex items-end justify-center bg-black/60 backdrop-blur-sm">
-    <div onclick="event.stopPropagation()" class="modal-enter w-full max-w-md bg-[#16161a] rounded-t-3xl border-t border-zinc-700/80 p-4 pb-[max(env(safe-area-inset-bottom),20px)] shadow-2xl flex flex-col max-h-[90vh]">
+  <div id="category-manage-modal" class="fixed inset-0 z-50 hidden flex items-end justify-center bg-black/60 backdrop-blur-sm pt-[max(calc(env(safe-area-inset-top)+14px),32px)]">
+    <div onclick="event.stopPropagation()" class="modal-enter w-full max-w-md bg-[#16161a] rounded-t-3xl border-t border-zinc-700/80 p-4 pb-[max(env(safe-area-inset-bottom),20px)] shadow-2xl flex flex-col max-h-full">
       <div class="flex items-center justify-between pb-3 border-b border-zinc-800">
         <h3 class="text-base font-bold text-zinc-100 flex items-center gap-2">
           <i data-lucide="grid" class="w-5 h-5 text-amber-400"></i>
@@ -672,8 +672,8 @@
   </div>
 
   <!-- Modal 10: Reports & Statistics Modal (Phase 4 升級版) -->
-  <div id="reports-modal" class="fixed inset-0 z-50 hidden flex items-end justify-center bg-black/60 backdrop-blur-sm">
-    <div onclick="event.stopPropagation()" class="modal-enter w-full max-w-md bg-[#16161a] rounded-t-3xl border-t border-zinc-700/80 p-4 pb-[max(env(safe-area-inset-bottom),20px)] shadow-2xl flex flex-col max-h-[90vh]">
+  <div id="reports-modal" class="fixed inset-0 z-50 hidden flex items-end justify-center bg-black/60 backdrop-blur-sm pt-[max(calc(env(safe-area-inset-top)+14px),32px)]">
+    <div onclick="event.stopPropagation()" class="modal-enter w-full max-w-md bg-[#16161a] rounded-t-3xl border-t border-zinc-700/80 p-4 pb-[max(env(safe-area-inset-bottom),20px)] shadow-2xl flex flex-col max-h-full">
       <!-- Modal Header -->
       <div class="flex items-center justify-between pb-3 border-b border-zinc-800">
         <h3 class="text-base font-bold text-zinc-100 flex items-center gap-2">
@@ -881,8 +881,8 @@
   </div>
 
   <!-- Modal 11: Backup & Export Modal -->
-  <div id="backup-modal" class="fixed inset-0 z-50 hidden flex items-end justify-center bg-black/60 backdrop-blur-sm">
-    <div onclick="event.stopPropagation()" class="modal-enter w-full max-w-md bg-[#16161a] rounded-t-3xl border-t border-zinc-700/80 p-4 pb-[max(env(safe-area-inset-bottom),20px)] shadow-2xl flex flex-col max-h-[85vh]">
+  <div id="backup-modal" class="fixed inset-0 z-50 hidden flex items-end justify-center bg-black/60 backdrop-blur-sm pt-[max(calc(env(safe-area-inset-top)+14px),32px)]">
+    <div onclick="event.stopPropagation()" class="modal-enter w-full max-w-md bg-[#16161a] rounded-t-3xl border-t border-zinc-700/80 p-4 pb-[max(env(safe-area-inset-bottom),20px)] shadow-2xl flex flex-col max-h-full">
       <div class="flex items-center justify-between pb-3 border-b border-zinc-800">
         <h3 class="text-base font-bold text-zinc-100 flex items-center gap-2">
           <i data-lucide="download-cloud" class="w-5 h-5 text-amber-400"></i>
@@ -1037,8 +1037,8 @@
   </div>
 
   <!-- Modal 12: Recurring Transactions Management Modal -->
-  <div id="recurring-modal" class="fixed inset-0 z-50 hidden flex items-end justify-center bg-black/60 backdrop-blur-sm">
-    <div onclick="event.stopPropagation()" class="modal-enter w-full max-w-md bg-[#16161a] rounded-t-3xl border-t border-zinc-700/80 p-4 pb-[max(env(safe-area-inset-bottom),20px)] shadow-2xl flex flex-col max-h-[85vh]">
+  <div id="recurring-modal" class="fixed inset-0 z-50 hidden flex items-end justify-center bg-black/60 backdrop-blur-sm pt-[max(calc(env(safe-area-inset-top)+14px),32px)]">
+    <div onclick="event.stopPropagation()" class="modal-enter w-full max-w-md bg-[#16161a] rounded-t-3xl border-t border-zinc-700/80 p-4 pb-[max(env(safe-area-inset-bottom),20px)] shadow-2xl flex flex-col max-h-full">
       <div class="flex items-center justify-between pb-3 border-b border-zinc-800">
         <h3 class="text-base font-bold text-zinc-100 flex items-center gap-2">
           <i data-lucide="repeat" class="w-5 h-5 text-emerald-400"></i>
@@ -1150,8 +1150,8 @@
   </div>
 
   <!-- Modal 15: Expense Templates Management Modal -->
-  <div id="template-modal" class="fixed inset-0 z-50 hidden flex items-end justify-center bg-black/60 backdrop-blur-sm">
-    <div onclick="event.stopPropagation()" class="modal-enter w-full max-w-md bg-[#16161a] rounded-t-3xl border-t border-zinc-700/80 p-4 pb-[max(env(safe-area-inset-bottom),20px)] shadow-2xl flex flex-col max-h-[85vh]">
+  <div id="template-modal" class="fixed inset-0 z-50 hidden flex items-end justify-center bg-black/60 backdrop-blur-sm pt-[max(calc(env(safe-area-inset-top)+14px),32px)]">
+    <div onclick="event.stopPropagation()" class="modal-enter w-full max-w-md bg-[#16161a] rounded-t-3xl border-t border-zinc-700/80 p-4 pb-[max(env(safe-area-inset-bottom),20px)] shadow-2xl flex flex-col max-h-full">
       <div class="flex items-center justify-between pb-3 border-b border-zinc-800">
         <h3 class="text-base font-bold text-zinc-100 flex items-center gap-2">
           <i data-lucide="zap" class="w-5 h-5 text-amber-400"></i>
