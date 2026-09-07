@@ -115,35 +115,11 @@
     }
 
     /**
-     * Week Strip Calendar Rendering
+     * Week Strip Calendar Rendering with 3-Panel Virtual Track
      */
-    async function renderWeekStripCalendar() {
-      const container = document.getElementById('week-strip-container');
-      const titleEl = document.getElementById('calendar-header-title');
-      const pickerInput = document.getElementById('input-date-picker');
-      const todayStr = getTodayString();
-
-      pickerInput.value = state.selectedDate;
-      pickerInput.max = todayStr;
-
-      const selectedD = new Date(state.selectedDate + 'T00:00:00');
-      titleEl.textContent = `${selectedD.getFullYear()}年 ${selectedD.getMonth() + 1}月`;
-
-      const listLabel = document.getElementById('list-date-label');
-      if (state.selectedDate === todayStr) {
-        listLabel.textContent = '本日明細';
-      } else {
-        listLabel.textContent = `${selectedD.getMonth() + 1}月${selectedD.getDate()}日 明細`;
-      }
-
-      const weekDays = getWeekDaysForDate(state.selectedDate);
-      const startOfWeek = weekDays[0].dateStr;
-      const endOfWeek = weekDays[6].dateStr;
-      const weekRecords = await db.records.where('date').between(startOfWeek, endOfWeek, true, true).toArray();
-      const recordDatesSet = new Set(weekRecords.map(r => r.date));
-
-      container.innerHTML = weekDays.map(item => {
-        const isSelected = item.dateStr === state.selectedDate;
+    function generateWeekDaysHTML(weekDays, selectedDateStr, todayStr, recordDatesSet) {
+      return weekDays.map(item => {
+        const isSelected = item.dateStr === selectedDateStr;
         const isToday = item.dateStr === todayStr;
         const isFuture = item.dateStr > todayStr;
         const hasRecord = recordDatesSet.has(item.dateStr);
@@ -176,6 +152,72 @@
       }).join('');
     }
 
+    function getOffsetDateString(baseDateStr, dayOffset) {
+      const d = new Date(baseDateStr + 'T00:00:00');
+      d.setDate(d.getDate() + dayOffset);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const dt = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${dt}`;
+    }
+
+    let isWeekCarouselAnimating = false;
+
+    async function renderWeekStripCalendar() {
+      const titleEl = document.getElementById('calendar-header-title');
+      const pickerInput = document.getElementById('input-date-picker');
+      const todayStr = getTodayString();
+
+      if (pickerInput) {
+        pickerInput.value = state.selectedDate;
+        pickerInput.max = todayStr;
+      }
+
+      const selectedD = new Date(state.selectedDate + 'T00:00:00');
+      if (titleEl) {
+        titleEl.textContent = `${selectedD.getFullYear()}年 ${selectedD.getMonth() + 1}月`;
+      }
+
+      const listLabel = document.getElementById('list-date-label');
+      if (listLabel) {
+        if (state.selectedDate === todayStr) {
+          listLabel.textContent = '本日明細';
+        } else {
+          listLabel.textContent = `${selectedD.getMonth() + 1}月${selectedD.getDate()}日 明細`;
+        }
+      }
+
+      // 計算三週（上一週、當前週、下一週）
+      const prevDateStr = getOffsetDateString(state.selectedDate, -7);
+      const nextDateStr = getOffsetDateString(state.selectedDate, +7);
+
+      const currWeekDays = getWeekDaysForDate(state.selectedDate);
+      const prevWeekDays = getWeekDaysForDate(prevDateStr);
+      const nextWeekDays = getWeekDaysForDate(nextDateStr);
+
+      const startDateRange = prevWeekDays[0].dateStr;
+      const endDateRange = nextWeekDays[6].dateStr;
+
+      // 一次性批次查詢三週的所有記帳紀錄
+      const rangeRecords = await db.records.where('date').between(startDateRange, endDateRange, true, true).toArray();
+      const recordDatesSet = new Set(rangeRecords.map(r => r.date));
+
+      const panelPrev = document.getElementById('week-panel-prev');
+      const panelCurr = document.getElementById('week-panel-curr');
+      const panelNext = document.getElementById('week-panel-next');
+      const track = document.getElementById('week-carousel-track');
+
+      if (panelPrev) panelPrev.innerHTML = generateWeekDaysHTML(prevWeekDays, state.selectedDate, todayStr, recordDatesSet);
+      if (panelCurr) panelCurr.innerHTML = generateWeekDaysHTML(currWeekDays, state.selectedDate, todayStr, recordDatesSet);
+      if (panelNext) panelNext.innerHTML = generateWeekDaysHTML(nextWeekDays, state.selectedDate, todayStr, recordDatesSet);
+
+      // 重置 track 位置至中央 panel (無動畫瞬間定位)
+      if (track) {
+        track.style.transition = 'none';
+        track.style.transform = 'translateX(-33.333333%)';
+      }
+    }
+
     async function selectDate(dateStr) {
       state.selectedDate = dateStr;
       await renderWeekStripCalendar();
@@ -188,15 +230,10 @@
       showToast('已切換至今天', 'info');
     }
 
-    async function changeWeek(offset) {
-      if (!offset) return;
-      const curD = new Date(state.selectedDate + 'T00:00:00');
-      curD.setDate(curD.getDate() + (offset * 7));
-      const y = curD.getFullYear();
-      const m = String(curD.getMonth() + 1).padStart(2, '0');
-      const d = String(curD.getDate()).padStart(2, '0');
-      let targetDateStr = `${y}-${m}-${d}`;
+    async function changeWeek(offset, animated = true) {
+      if (!offset || isWeekCarouselAnimating) return;
       const todayStr = getTodayString();
+      const targetDateStr = getOffsetDateString(state.selectedDate, offset * 7);
 
       // 如果切換到未來週，且該週的週一已經超過今天，則提示並阻止
       if (offset > 0) {
@@ -204,67 +241,167 @@
         const mondayStr = targetWeekDays[0].dateStr;
         if (mondayStr > todayStr) {
           showToast('已是最新一週囉', 'info');
+          const track = document.getElementById('week-carousel-track');
+          if (track) {
+            track.style.transition = 'transform 0.15s ease-out';
+            track.style.transform = 'translateX(-36%)';
+            setTimeout(() => {
+              track.style.transition = 'transform 0.2s ease-out';
+              track.style.transform = 'translateX(-33.333333%)';
+            }, 150);
+          }
           return;
         }
-        if (targetDateStr > todayStr) {
-          targetDateStr = todayStr;
-        }
       }
 
-      // 切換時提供平滑過渡動畫
-      const container = document.getElementById('week-strip-container');
-      if (container) {
-        container.style.opacity = '0.35';
-        container.style.transform = offset > 0 ? 'translateX(-16px)' : 'translateX(16px)';
+      let finalDateStr = targetDateStr;
+      if (offset > 0 && targetDateStr > todayStr) {
+        finalDateStr = todayStr;
       }
 
-      state.selectedDate = targetDateStr;
-      await renderWeekStripCalendar();
-      await renderTodayRecords();
+      const track = document.getElementById('week-carousel-track');
+      if (animated && track) {
+        isWeekCarouselAnimating = true;
+        const targetPercent = offset > 0 ? -66.666666 : 0;
+        track.style.transition = 'transform 0.28s cubic-bezier(0.25, 1, 0.5, 1)';
+        track.style.transform = `translateX(${targetPercent}%)`;
 
-      if (container) {
-        requestAnimationFrame(() => {
-          container.style.transition = 'all 0.22s cubic-bezier(0.16, 1, 0.3, 1)';
-          container.style.opacity = '1';
-          container.style.transform = 'translateX(0)';
-        });
+        const onTransitionEnd = async () => {
+          track.removeEventListener('transitionend', onTransitionEnd);
+          state.selectedDate = finalDateStr;
+          await renderWeekStripCalendar();
+          await renderTodayRecords();
+          isWeekCarouselAnimating = false;
+        };
+        track.addEventListener('transitionend', onTransitionEnd);
+      } else {
+        state.selectedDate = finalDateStr;
+        await renderWeekStripCalendar();
+        await renderTodayRecords();
       }
     }
 
     function setupWeekStripGestures() {
-      const container = document.getElementById('week-strip-container');
-      if (!container) return;
+      const viewport = document.getElementById('week-carousel-viewport');
+      const track = document.getElementById('week-carousel-track');
+      if (!viewport || !track) return;
 
-      let touchStartX = 0;
-      let touchStartY = 0;
-      let touchStartTime = 0;
+      let startX = 0;
+      let startY = 0;
+      let startTime = 0;
+      let isTracking = false;
+      let isHorizontal = null; // null: 尚未判定, true: 水平滑動, false: 垂直捲動
+      let deltaX = 0;
 
-      container.addEventListener('touchstart', (e) => {
-        if (!e.touches || e.touches.length === 0) return;
-        touchStartX = e.touches[0].clientX;
-        touchStartY = e.touches[0].clientY;
-        touchStartTime = Date.now();
+      viewport.addEventListener('touchstart', (e) => {
+        if (isWeekCarouselAnimating || !e.touches || e.touches.length === 0) return;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        startTime = Date.now();
+        isTracking = true;
+        isHorizontal = null;
+        deltaX = 0;
+        track.style.transition = 'none';
       }, { passive: true });
 
-      container.addEventListener('touchend', (e) => {
-        if (!e.changedTouches || e.changedTouches.length === 0) return;
-        const touchEndX = e.changedTouches[0].clientX;
-        const touchEndY = e.changedTouches[0].clientY;
-        const diffX = touchEndX - touchStartX;
-        const diffY = touchEndY - touchStartY;
-        const elapsed = Date.now() - touchStartTime;
+      viewport.addEventListener('touchmove', (e) => {
+        if (!isTracking || !e.touches || e.touches.length === 0) return;
+        const curX = e.touches[0].clientX;
+        const curY = e.touches[0].clientY;
+        const diffX = curX - startX;
+        const diffY = curY - startY;
 
-        // 水平滑動距離 > 35px，且水平位移大於垂直位移（避免與滾動衝突），手勢在 600ms 內完成
-        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 35 && elapsed < 600) {
-          if (diffX < 0) {
-            // 手指由右往左滑 -> 下一週
-            changeWeek(1);
+        // 判定滑動意圖方向 (水平 vs 垂直)
+        if (isHorizontal === null) {
+          if (Math.abs(diffY) > 8 && Math.abs(diffY) >= Math.abs(diffX)) {
+            // 使用者在垂直滑動瀏覽明細，放棄水平輪播
+            isHorizontal = false;
+            return;
+          } else if (Math.abs(diffX) > 8 && Math.abs(diffX) > Math.abs(diffY)) {
+            // 使用者在水平滑動週曆
+            isHorizontal = true;
           } else {
-            // 手指由左往右滑 -> 上一週
-            changeWeek(-1);
+            return;
           }
         }
+
+        if (!isHorizontal) return;
+
+        deltaX = diffX;
+        const viewportWidth = viewport.offsetWidth || 360;
+        const todayStr = getTodayString();
+        const nextWeekMonday = getWeekDaysForDate(getOffsetDateString(state.selectedDate, 7))[0].dateStr;
+
+        // 邊界阻尼感：若向左拉但下一週超過今天，加入橡皮筋阻尼反饋
+        let effectiveDeltaX = deltaX;
+        if (deltaX < 0 && nextWeekMonday > todayStr) {
+          effectiveDeltaX = deltaX * 0.22;
+        }
+
+        // 1:1 即時跟隨手指移動 (GPU 加速)
+        const percentOffset = -33.333333 + (effectiveDeltaX / viewportWidth) * 33.333333;
+        track.style.transform = `translateX(${percentOffset}%)`;
       }, { passive: true });
+
+      const handleTouchEnd = () => {
+        if (!isTracking) return;
+        isTracking = false;
+
+        if (!isHorizontal) return;
+
+        const viewportWidth = viewport.offsetWidth || 360;
+        const elapsed = Math.max(Date.now() - startTime, 1);
+        const velocityX = deltaX / elapsed; // px/ms
+        const todayStr = getTodayString();
+        const nextWeekMonday = getWeekDaysForDate(getOffsetDateString(state.selectedDate, 7))[0].dateStr;
+
+        // 判定切換門檻：位移超過 20% 容器寬，或是手勢快甩 (速度 > 0.3px/ms 且位移 > 25px)
+        const swipeNextThreshold = deltaX < -viewportWidth * 0.2 || (velocityX < -0.3 && deltaX < -25);
+        const swipePrevThreshold = deltaX > viewportWidth * 0.2 || (velocityX > 0.3 && deltaX > 25);
+
+        if (swipeNextThreshold) {
+          if (nextWeekMonday > todayStr) {
+            showToast('已是最新一週囉', 'info');
+            snapBack();
+          } else {
+            animateToWeek(1);
+          }
+        } else if (swipePrevThreshold) {
+          animateToWeek(-1);
+        } else {
+          snapBack();
+        }
+      };
+
+      function snapBack() {
+        track.style.transition = 'transform 0.22s cubic-bezier(0.25, 1, 0.5, 1)';
+        track.style.transform = 'translateX(-33.333333%)';
+      }
+
+      function animateToWeek(offset) {
+        isWeekCarouselAnimating = true;
+        const targetPercent = offset > 0 ? -66.666666 : 0;
+        track.style.transition = 'transform 0.26s cubic-bezier(0.25, 1, 0.5, 1)';
+        track.style.transform = `translateX(${targetPercent}%)`;
+
+        const onTransitionEnd = async () => {
+          track.removeEventListener('transitionend', onTransitionEnd);
+          const targetDateStr = getOffsetDateString(state.selectedDate, offset * 7);
+          const todayStr = getTodayString();
+          let finalDateStr = targetDateStr;
+          if (offset > 0 && targetDateStr > todayStr) {
+            finalDateStr = todayStr;
+          }
+          state.selectedDate = finalDateStr;
+          await renderWeekStripCalendar();
+          await renderTodayRecords();
+          isWeekCarouselAnimating = false;
+        };
+        track.addEventListener('transitionend', onTransitionEnd);
+      }
+
+      viewport.addEventListener('touchend', handleTouchEnd, { passive: true });
+      viewport.addEventListener('touchcancel', handleTouchEnd, { passive: true });
     }
 
     async function onDatePickerChanged(val) {
@@ -272,7 +409,8 @@
       const today = getTodayString();
       if (val > today) {
         showToast('不允許選擇未來日期', 'error');
-        document.getElementById('input-date-picker').value = state.selectedDate;
+        const picker = document.getElementById('input-date-picker');
+        if (picker) picker.value = state.selectedDate;
         return;
       }
       await selectDate(val);
