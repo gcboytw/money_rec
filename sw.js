@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pocket-ledger-v6.3';
+const CACHE_NAME = 'pocket-ledger-v6.4';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -11,6 +11,7 @@ const ASSETS_TO_CACHE = [
   './lib/chart.umd.min.js',
   './lib/lucide.min.js',
   './lib/xlsx.full.min.js',
+  './lib/exceljs.min.js',
   './asset/index-icon.png',
   './asset/account-bank.svg',
   './asset/account-creditcard.svg',
@@ -43,7 +44,8 @@ const ASSETS_TO_CACHE = [
   './asset/categories-money.svg',
   './asset/categories-worker.svg',
   './asset/categories-coin.svg',
-  './asset/categories-increasing.svg'
+  './asset/categories-increasing.svg',
+  './asset/template/monthly_template.xlsx'
 ];
 
 self.addEventListener('install', (event) => {

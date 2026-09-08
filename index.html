@@ -44,7 +44,11 @@
   <script src="lib/chart.umd.min.js"></script>
   <script src="lib/lucide.min.js"></script>
   <script src="lib/xlsx.full.min.js"></script>
+  <script src="lib/exceljs.min.js"></script>
   <script>
+    if (typeof ExcelJS === 'undefined') {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"><\/script>');
+    }
     if (typeof XLSX === 'undefined') {
       document.write('<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"><\/script>');
     }
@@ -717,6 +721,18 @@
       <div class="overflow-y-auto py-2 space-y-4 flex-1 pr-1 custom-scroll">
         <!-- ================= A. 月報表內容區塊 ================= -->
         <div id="report-month-container" class="space-y-4">
+          <!-- 頂部資訊與快速匯出按鈕列 -->
+          <div class="flex items-center justify-between px-1">
+            <span class="text-xs text-zinc-400 font-medium flex items-center gap-1">
+              <i data-lucide="bar-chart-2" class="w-3.5 h-3.5 text-amber-400"></i>
+              月度收支統計
+            </span>
+            <button onclick="exportCurrentReportMonthXLSX()" class="tap-scale flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-medium">
+              <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
+              <span>匯出此月 Excel</span>
+            </button>
+          </div>
+
           <!-- 本月收支小卡 -->
           <div class="grid grid-cols-3 gap-2 text-center p-3 rounded-2xl bg-zinc-900 border border-zinc-800 shadow-sm">
             <div>
@@ -740,22 +756,6 @@
             </div>
             <div id="report-pie-legend-list" class="flex-1 space-y-2 overflow-y-auto max-h-44 pr-1 custom-scroll">
               <!-- 動態生成右側分類名稱與佔比(%) -->
-            </div>
-          </div>
-
-          <!-- 每月各分類支出總計排行 (含點選展開子分類) -->
-          <div class="space-y-2.5">
-            <div class="flex items-center justify-between px-1">
-              <span class="text-xs font-bold text-zinc-200 flex items-center gap-1.5">
-                <i data-lucide="layers" class="w-3.5 h-3.5 text-amber-400"></i>
-                各分類支出排行與總計
-              </span>
-              <span class="text-[11px] text-zinc-500">點選可查看子分類</span>
-            </div>
-
-            <!-- 動態生成分類排行列表 -->
-            <div id="report-category-rank-list" class="space-y-2">
-              <!-- Dynamically populated in js -->
             </div>
           </div>
 
@@ -805,6 +805,22 @@
                   <!-- Dynamically populated in js -->
                 </div>
               </div>
+            </div>
+          </div>
+
+          <!-- 每月各分類支出總計排行 (含點選展開子分類) -->
+          <div class="space-y-2.5 pt-1 border-t border-zinc-800/80">
+            <div class="flex items-center justify-between px-1">
+              <span class="text-xs font-bold text-zinc-200 flex items-center gap-1.5">
+                <i data-lucide="layers" class="w-3.5 h-3.5 text-amber-400"></i>
+                各分類支出排行與總計
+              </span>
+              <span class="text-[11px] text-zinc-500">點選可查看子分類</span>
+            </div>
+
+            <!-- 動態生成分類排行列表 -->
+            <div id="report-category-rank-list" class="space-y-2">
+              <!-- Dynamically populated in js -->
             </div>
           </div>
         </div>
@@ -943,18 +959,27 @@
           </div>
         </div>
 
-        <!-- 匯出格式: XLSX -->
-        <div class="p-3.5 bg-zinc-900 rounded-2xl border border-zinc-800 flex items-center justify-between">
-          <div>
-            <div class="text-sm font-bold text-zinc-200 flex items-center gap-1.5">
-              <span class="px-1.5 py-0.5 rounded bg-emerald-950 border border-emerald-700/50 text-[10px] font-mono text-emerald-300 font-bold">XLSX</span>
-              匯出 Excel 試算表
+        <!-- 匯出格式: XLSX (按月份匯出) -->
+        <div class="p-3.5 bg-zinc-900 rounded-2xl border border-zinc-800 flex flex-col gap-2.5">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-sm font-bold text-zinc-200 flex items-center gap-1.5">
+                <span class="px-1.5 py-0.5 rounded bg-emerald-950 border border-emerald-700/50 text-[10px] font-mono text-emerald-300 font-bold">XLSX</span>
+                匯出 Excel 試算表
+              </div>
+              <div class="text-xs text-zinc-400 mt-0.5">以月份為單位匯出收支明細（含日期、分類、帳戶與備註）</div>
             </div>
-            <div class="text-xs text-zinc-400 mt-0.5">收支交易明細（含日期、分類、帳戶與備註）</div>
+            <span class="text-[11px] text-zinc-500 font-mono">1次匯出1個月</span>
           </div>
-          <button onclick="exportXLSXRecords()" class="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs shadow tap-scale">
-            匯出
-          </button>
+          <div class="flex items-center gap-2 pt-1 border-t border-zinc-800/80">
+            <div class="relative flex-1">
+              <input type="month" id="export-xlsx-month" class="w-full bg-zinc-950 border border-zinc-700/80 rounded-xl px-3 py-1.5 text-xs text-zinc-200 font-mono focus:outline-none focus:border-emerald-500">
+            </div>
+            <button onclick="exportXLSXRecords()" class="px-4 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs shadow tap-scale flex items-center gap-1.5 shrink-0">
+              <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
+              <span>匯出</span>
+            </button>
+          </div>
         </div>
 
         <!-- 匯出格式 3: JSON -->

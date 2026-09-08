@@ -2490,6 +2490,16 @@
     async function openBackupModal() {
       document.getElementById('backup-modal').classList.remove('hidden');
       renderGasSyncUI();
+
+      // 初始化 Excel 匯出月份為當前月份 (YYYY-MM)
+      const exportMonthInput = document.getElementById('export-xlsx-month');
+      if (exportMonthInput && !exportMonthInput.value) {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        exportMonthInput.value = `${y}-${m}`;
+      }
+
       const verEl = document.getElementById('app-current-version');
       if (verEl) {
         if ('caches' in window) {
@@ -2513,14 +2523,20 @@
     }
 
     /**
-     * 產出格式化交易紀錄清單供 XLS 匯出 (依需求排除轉帳資料)
+     * 產出格式化交易紀錄清單 (依需求排除轉帳資料，可指定月份 YYYY-MM，日期由小至大排序)
      */
-    async function getFormattedExportRows() {
+    async function getFormattedExportRows(targetMonth) {
       const records = await db.records.toArray();
       // 僅保留支出與收入紀錄，不需要轉帳
-      const validRecords = records.filter(r => r.type === 'expense' || r.type === 'income');
-      // 依日期由新至舊排序
-      validRecords.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+      let validRecords = records.filter(r => r.type === 'expense' || r.type === 'income');
+
+      // 若指定月份 (YYYY-MM)，僅篩選該月份之紀錄
+      if (targetMonth) {
+        validRecords = validRecords.filter(r => r.date && r.date.startsWith(targetMonth));
+      }
+
+      // 依日期由小至大排序 (由舊至新)
+      validRecords.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
 
       const catMap = {};
       state.allCategories.forEach(c => { catMap[c.id] = c; });
@@ -2540,40 +2556,245 @@
           '主分類': parentName,
           '子分類': subName,
           '帳戶': accName,
-          '金額': r.amount || 0,
-          '備註': r.note || ''
+          '轉出／交易帳戶': accName,
+          '轉入帳戶': '',
+          '金額': Number(r.amount) || 0,
+          '備註': r.note || '',
+          date: r.date || '',
+          type: typeText,
+          parentName: parentName,
+          subName: subName,
+          accName: accName,
+          amount: Number(r.amount) || 0,
+          note: r.note || '',
+          rawType: r.type,
+          parentCategoryId: r.parentCategoryId
         };
       });
     }
 
     /**
-     * 匯出 Excel (XLSX)
+     * 內建月報表範本 Base64 (用以在 file:// 協議跨域阻擋或離線快取未命中時，100% 確保載入完整樣式範本)
      */
-    async function exportXLSXRecords() {
+    const MONTHLY_TEMPLATE_BASE64 = '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';
+
+    function base64ToArrayBuffer(base64) {
+      const binaryString = window.atob(base64);
+      const len = binaryString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      return bytes.buffer;
+    }
+
+    /**
+     * 匯出 Excel (XLSX) - 套用 monthly_template.xlsx 範本 (優先使用 ExcelJS 以完整保留儲存格背景色與字體樣式)
+     * @param {string} [customMonth] 可選指定月份，格式 "YYYY-MM"
+     */
+    async function exportXLSXRecords(customMonth) {
       try {
-        if (typeof XLSX === 'undefined') {
-          showToast('XLSX 套件尚未載入完成，請稍候重試', 'error');
-          return;
+        let selectedMonth = customMonth;
+        if (!selectedMonth) {
+          const monthInput = document.getElementById('export-xlsx-month');
+          selectedMonth = monthInput?.value;
         }
 
-        const rows = await getFormattedExportRows();
+        // 若無輸入則預設當前月份
+        if (!selectedMonth) {
+          const now = new Date();
+          const y = now.getFullYear();
+          const m = String(now.getMonth() + 1).padStart(2, '0');
+          selectedMonth = `${y}-${m}`;
+        }
+
+        const rows = await getFormattedExportRows(selectedMonth);
+        const [year, month] = selectedMonth.split('-');
+
         if (rows.length === 0) {
-          showToast('目前尚無記帳紀錄可匯出', 'info');
+          showToast(`${year}年${month}月尚無收支明細可匯出`, 'info');
           return;
         }
 
-        const ws = XLSX.utils.json_to_sheet(rows);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, '交易明細');
+        const BASE_CATEGORIES = ['食物酒水', '居家物業', '行車交通', '3C通訊', '休閒娛樂', '進修學習', '人情往來', '保健醫療'];
+        const sheetTitle = `${year}年${month}月明細`;
 
-        const dateTag = getTodayString().replace(/-/g, '');
-        XLSX.writeFile(wb, `PocketLedger_Records_${dateTag}.xlsx`);
-        showToast('Excel 試算表已成功匯出下載！', 'success');
+        // 彙總計算：總支出、總收入、結餘、各主分類支出小計
+        let totalExpense = 0;
+        let totalIncome = 0;
+        const catExpenses = {};
+
+        rows.forEach(r => {
+          if (r.rawType === 'expense') {
+            totalExpense += r.amount;
+            const pName = r.parentName || '其它';
+            catExpenses[pName] = (catExpenses[pName] || 0) + r.amount;
+          } else if (r.rawType === 'income') {
+            totalIncome += r.amount;
+          }
+        });
+        const balance = totalIncome - totalExpense;
+
+        // 整理橫向分類清單：以 8 大基準分類為主，自訂分類若有支出則向右延伸
+        const categoryList = [...BASE_CATEGORIES];
+        Object.keys(catExpenses).forEach(cat => {
+          if (!categoryList.includes(cat)) {
+            categoryList.push(cat);
+          }
+        });
+
+        // 方案 1: 使用 ExcelJS (支援完整保留範本之背景色、字體顏色與框線)
+        if (typeof ExcelJS !== 'undefined') {
+          let wb = new ExcelJS.Workbook();
+          let isLoaded = false;
+
+          // 1. 優先透過 fetch 讀取外部最新範本
+          try {
+            const res = await fetch('./asset/template/monthly_template.xlsx');
+            if (res.ok) {
+              const ab = await res.arrayBuffer();
+              await wb.xlsx.load(ab);
+              isLoaded = true;
+            }
+          } catch (e) {
+            console.warn('透過 fetch 讀取範本受阻（可能為 file:// 協議限制或離線），改由內建範本載入：', e);
+          }
+
+          // 2. 若 fetch 失敗（例如 file:// CORS 阻擋或無網路快取），使用內建 Base64 範本保證 100% 成功
+          if (!isLoaded) {
+            try {
+              const ab = base64ToArrayBuffer(MONTHLY_TEMPLATE_BASE64);
+              await wb.xlsx.load(ab);
+              isLoaded = true;
+            } catch (e) {
+              console.error('內建 Base64 範本載入異常：', e);
+            }
+          }
+
+          if (isLoaded && wb.worksheets.length > 0) {
+            const ws = wb.worksheets[0];
+            ws.name = sheetTitle;
+
+            // A2: 大標題
+            ws.getCell('A2').value = `${selectedMonth} 月報表`;
+
+            // 取得 I 欄 (第 9 欄) 之樣本儲存格樣式，作為新擴充欄位的樣式複製來源
+            const sampleHeaderCell = ws.getCell(4, 9);
+            const sampleAmountCell = ws.getCell(5, 9);
+            const samplePctCell = ws.getCell(6, 9);
+
+            // Row 4 (分類)、Row 5 (總金額)、Row 6 (佔比) - 從 B 欄 (col=2) 開始填寫
+            categoryList.forEach((catName, idx) => {
+              const col = 2 + idx; // B is 2, C is 3...
+              const cHead = ws.getCell(4, col);
+              const cAmt = ws.getCell(5, col);
+              const cPct = ws.getCell(6, col);
+
+              cHead.value = catName;
+              const amt = catExpenses[catName] || 0;
+              cAmt.value = amt;
+              const pct = totalExpense > 0 ? ((amt / totalExpense) * 100).toFixed(1) + '%' : '0.0%';
+              cPct.value = pct;
+
+              // 若向右延伸超出範本原有的 8 大分類 (col > 9)，自動複製相鄰樣式 (背景色、字型、框線)
+              if (col > 9) {
+                if (sampleHeaderCell.style) cHead.style = JSON.parse(JSON.stringify(sampleHeaderCell.style));
+                if (sampleAmountCell.style) cAmt.style = JSON.parse(JSON.stringify(sampleAmountCell.style));
+                if (samplePctCell.style) cPct.style = JSON.parse(JSON.stringify(samplePctCell.style));
+              }
+            });
+
+            // Row 8: 總結指標
+            ws.getCell('E8').value = totalIncome;  // 總收入
+            ws.getCell('G8').value = totalExpense; // 總支出
+            ws.getCell('I8').value = balance;      // 結餘
+
+            // 清除範本原本殘留之明細列 (Row 11 開始)
+            const currentTotalRows = ws.rowCount;
+            for (let r = 11; r <= currentTotalRows; r++) {
+              const row = ws.getRow(r);
+              for (let c = 1; c <= 7; c++) {
+                row.getCell(c).value = null;
+              }
+            }
+
+            // 寫入排序好的交易明細 (日期由小至大，Row 11 起)
+            const sampleDataRow = ws.getRow(11);
+            rows.forEach((r, idx) => {
+              const targetRow = ws.getRow(11 + idx);
+              const vals = [r.date, r.type, r.parentName, r.subName, r.accName, r.amount, r.note];
+              vals.forEach((v, cIdx) => {
+                const cell = targetRow.getCell(1 + cIdx);
+                cell.value = v;
+                // 繼承範本明細列之字型、對齊與格式
+                const sampleCell = sampleDataRow.getCell(1 + cIdx);
+                if (sampleCell && sampleCell.style) {
+                  if (sampleCell.font) cell.font = JSON.parse(JSON.stringify(sampleCell.font));
+                  if (sampleCell.alignment) cell.alignment = JSON.parse(JSON.stringify(sampleCell.alignment));
+                  if (sampleCell.border) cell.border = JSON.parse(JSON.stringify(sampleCell.border));
+                }
+              });
+            });
+
+            const outBuf = await wb.xlsx.writeBuffer();
+            const blob = new Blob([outBuf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `PocketLedger_${year}_${month}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+            showToast(`${year}年${month}月 Excel 試算表已成功匯出！`, 'success');
+            return;
+          }
+        }
+
+        // 方案 2: Fallback 備援 (使用 SheetJS XLSX)
+        if (typeof XLSX !== 'undefined') {
+          const wb = XLSX.utils.book_new();
+          const sheetData = [];
+          sheetData.push([`${selectedMonth} 月報表`]);
+          sheetData.push([]);
+          const rowCats = ['分類', ...categoryList];
+          const rowAmts = ['總金額', ...categoryList.map(c => catExpenses[c] || 0)];
+          const rowPcts = ['佔比', ...categoryList.map(c => totalExpense > 0 ? ((catExpenses[c] || 0) / totalExpense * 100).toFixed(1) + '%' : '0.0%')];
+          sheetData.push(rowCats);
+          sheetData.push(rowAmts);
+          sheetData.push(rowPcts);
+          sheetData.push([]);
+          sheetData.push(['', '', '', '總收入：', totalIncome, '總支出：', totalExpense, '結餘：', balance]);
+          sheetData.push([]);
+          sheetData.push(['日期', '類型', '主分類', '子分類', '帳戶', '金額', '備註']);
+          rows.forEach(r => {
+            sheetData.push([r.date, r.type, r.parentName, r.subName, r.accName, r.amount, r.note]);
+          });
+          const ws = XLSX.utils.aoa_to_sheet(sheetData);
+          XLSX.utils.book_append_sheet(wb, ws, sheetTitle);
+          XLSX.writeFile(wb, `PocketLedger_${year}_${month}.xlsx`);
+          showToast(`${year}年${month}月 Excel 試算表已成功匯出！`, 'success');
+          return;
+        }
+
+        showToast('找不到可用之 Excel 匯出模組', 'error');
       } catch (err) {
         console.error('Export XLSX Error:', err);
         showToast('匯出 Excel 失敗：' + err.message, 'error');
       }
     }
+
+    /**
+     * 從月報表頁面快速匯出當前檢視月份之 Excel
+     */
+    async function exportCurrentReportMonthXLSX() {
+      const ym = `${state.reportYear}-${String(state.reportMonth).padStart(2, '0')}`;
+      await exportXLSXRecords(ym);
+    }
+
+    window.exportXLSXRecords = exportXLSXRecords;
+    window.exportCurrentReportMonthXLSX = exportCurrentReportMonthXLSX;
 
     /**
      * 匯出 CSV (UTF-8 加 BOM 避免 Excel 亂碼)
