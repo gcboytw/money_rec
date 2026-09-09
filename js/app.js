@@ -1421,11 +1421,11 @@
           <div class="bg-zinc-900 rounded-2xl p-3 border border-zinc-800 ${p.isArchived ? 'opacity-50' : ''}">
             <div class="pb-2.5 border-b border-zinc-800 space-y-2">
               <div class="flex items-center gap-2 flex-wrap">
-                <img src="${p.icon}" class="w-5 h-5 object-contain shrink-0">
+                <img src="${p.icon}" class="w-6 h-6 object-contain shrink-0">
                 <span class="text-sm font-bold text-zinc-200">${p.name}</span>
                 ${p.type === 'expense' ? `
                   <span class="text-sm px-2 py-0.5 rounded-full ${p.budgetMonthly > 0 ? 'bg-amber-950/60 text-amber-400 border border-amber-800/60' : 'bg-zinc-800 text-zinc-500'} font-mono">
-                    ${p.budgetMonthly > 0 ? `預算 ${p.budgetMonthly.toLocaleString()}` : '未設預算'}
+                    ${p.budgetMonthly > 0 ? `預算 $${p.budgetMonthly.toLocaleString()}` : '未設預算'}
                   </span>
                 ` : ''}
                 ${p.isArchived ? '<span class="text-sm px-1.5 py-0.5 bg-zinc-700 text-zinc-400 rounded">已封存</span>' : ''}
@@ -1446,7 +1446,7 @@
             <div class="pt-2 flex flex-wrap gap-1.5">
               ${subs.length > 0 ? subs.map(s => `
                 <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-800 border border-zinc-700/60 text-sm text-zinc-300 ${s.isArchived ? 'opacity-50' : ''}">
-                  <img src="${s.icon}" class="w-4 h-4 object-contain shrink-0">
+                  <img src="${s.icon}" class="w-6 h-6 object-contain shrink-0">
                   <span class="break-words">${s.name}</span>
                   <button onclick="openEditCategoryForm(${s.id})" title="編輯" class="text-zinc-400 hover:text-amber-300 ml-0.5 shrink-0">
                     <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
@@ -1536,7 +1536,7 @@
       iconGrid.innerHTML = AVAILABLE_ICONS.map((icon, idx) => `
         <label class="flex items-center justify-center p-2 rounded-lg bg-zinc-800 border border-zinc-700 hover:border-amber-400 cursor-pointer">
           <input type="radio" name="cat-icon-choice" value="${icon}" class="hidden" ${idx === 0 ? 'checked' : ''}>
-          <img src="${icon}" class="w-5 h-5 object-contain">
+          <img src="${icon}" class="w-6 h-6 object-contain">
         </label>
       `).join('');
 
@@ -1566,7 +1566,7 @@
       iconGrid.innerHTML = AVAILABLE_ICONS.map((icon) => `
         <label class="flex items-center justify-center p-2 rounded-lg bg-zinc-800 border border-zinc-700 hover:border-amber-400 cursor-pointer">
           <input type="radio" name="cat-icon-choice" value="${icon}" class="hidden" ${icon === cat.icon ? 'checked' : ''}>
-          <img src="${icon}" class="w-5 h-5 object-contain">
+          <img src="${icon}" class="w-6 h-6 object-contain">
         </label>
       `).join('');
 
