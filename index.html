@@ -971,13 +971,10 @@
             </div>
             <span class="text-xs text-zinc-500 font-mono">1次匯出1個月</span>
           </div>
-          <div class="flex items-center gap-2 pt-1 border-t border-zinc-800/80">
-            <div class="relative flex-1">
-              <input type="month" id="export-xlsx-month" class="w-full bg-zinc-950 border border-zinc-700/80 rounded-xl px-3 py-2 text-sm text-zinc-200 font-mono focus:outline-none focus:border-emerald-500">
-            </div>
-            <button onclick="exportXLSXRecords()" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm shadow tap-scale flex items-center gap-1.5 shrink-0">
-              <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
-              <span>匯出</span>
+          <div class="flex items-center justify-between gap-3 pt-1 border-t border-zinc-800/80">
+            <input type="month" id="export-xlsx-month" class="w-[200px] bg-zinc-950 border border-zinc-700/80 rounded-xl px-3 py-2 text-sm text-zinc-200 font-mono text-center focus:outline-none focus:border-emerald-500">
+            <button onclick="exportXLSXRecords()" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm shadow tap-scale shrink-0">
+              匯出
             </button>
           </div>
         </div>
