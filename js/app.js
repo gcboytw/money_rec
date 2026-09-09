@@ -1733,19 +1733,19 @@
 
       if (state.reportTab === 'month') {
         if (btnMonth) {
-          btnMonth.className = 'flex-1 py-1.5 rounded-lg text-xs font-bold transition-all bg-amber-500 text-zinc-950 shadow';
+          btnMonth.className = 'flex-1 py-1.5 rounded-lg text-sm font-bold transition-all bg-amber-500 text-zinc-950 shadow';
         }
         if (btnYear) {
-          btnYear.className = 'flex-1 py-1.5 rounded-lg text-xs font-bold transition-all text-zinc-400 hover:text-zinc-200';
+          btnYear.className = 'flex-1 py-1.5 rounded-lg text-sm font-bold transition-all text-zinc-400 hover:text-zinc-200';
         }
         if (monthContainer) monthContainer.classList.remove('hidden');
         if (yearContainer) yearContainer.classList.add('hidden');
       } else {
         if (btnMonth) {
-          btnMonth.className = 'flex-1 py-1.5 rounded-lg text-xs font-bold transition-all text-zinc-400 hover:text-zinc-200';
+          btnMonth.className = 'flex-1 py-1.5 rounded-lg text-sm font-bold transition-all text-zinc-400 hover:text-zinc-200';
         }
         if (btnYear) {
-          btnYear.className = 'flex-1 py-1.5 rounded-lg text-xs font-bold transition-all bg-amber-500 text-zinc-950 shadow';
+          btnYear.className = 'flex-1 py-1.5 rounded-lg text-sm font-bold transition-all bg-amber-500 text-zinc-950 shadow';
         }
         if (monthContainer) monthContainer.classList.add('hidden');
         if (yearContainer) yearContainer.classList.remove('hidden');
@@ -1884,9 +1884,9 @@
       const incEl = document.getElementById('stat-month-income');
       const balEl = document.getElementById('stat-month-balance');
 
-      if (expEl) expEl.textContent = `NT$ ${monthExp.toLocaleString()}`;
-      if (incEl) incEl.textContent = `NT$ ${monthInc.toLocaleString()}`;
-      if (balEl) balEl.textContent = `NT$ ${(monthInc - monthExp).toLocaleString()}`;
+      if (expEl) expEl.textContent = `$ ${monthExp.toLocaleString()}`;
+      if (incEl) incEl.textContent = `$ ${monthInc.toLocaleString()}`;
+      if (balEl) balEl.textContent = `$ ${(monthInc - monthExp).toLocaleString()}`;
 
       // 圓餅圖 (Doughnut Chart) 排序與取色
       const sortedCats = Object.values(catExpenseMap).sort((a, b) => b.total - a.total);
@@ -1946,7 +1946,7 @@
                   label: function(context) {
                     const val = context.raw || 0;
                     const pct = monthExp > 0 ? ((val / monthExp) * 100).toFixed(1) : 0;
-                    return ` ${context.label}: NT$ ${val.toLocaleString()} (${pct}%)`;
+                    return ` ${context.label}: $ ${val.toLocaleString()} (${pct}%)`;
                   }
                 }
               }
@@ -1959,18 +1959,18 @@
       const legendListEl = document.getElementById('report-pie-legend-list');
       if (legendListEl) {
         if (sortedCats.length === 0) {
-          legendListEl.innerHTML = `<div class="text-xs text-zinc-500 py-6 text-center">尚無支出資料</div>`;
+          legendListEl.innerHTML = `<div class="text-sm text-zinc-500 py-6 text-center">尚無支出資料</div>`;
         } else {
           legendListEl.innerHTML = sortedCats.map((cat, idx) => {
             const pct = monthExp > 0 ? ((cat.total / monthExp) * 100).toFixed(1) : '0.0';
             const color = colorPalette[idx % colorPalette.length];
             return `
-              <div class="flex items-center text-xs py-0.5 pl-4">
+              <div class="flex items-center text-sm py-0.5 pl-4">
                 <div class="flex items-center gap-1.5 w-[80px] min-w-0 pr-1">
                   <span class="w-2.5 h-2.5 rounded-sm flex-shrink-0" style="background-color: ${color}"></span>
-                  <span class="text-zinc-200 font-medium truncate text-xs" title="${cat.name}">${cat.name}</span>
+                  <span class="text-zinc-200 font-medium truncate text-sm" title="${cat.name}">${cat.name}</span>
                 </div>
-                <span class="font-mono text-zinc-400 font-bold text-xs flex-shrink-0 text-right w-12">${pct}%</span>
+                <span class="font-mono text-zinc-400 font-bold text-sm flex-shrink-0 text-right w-12">${pct}%</span>
               </div>
             `;
           }).join('');
@@ -1995,7 +1995,7 @@
 
       if (sortedCats.length === 0) {
         listEl.innerHTML = `
-          <div class="p-6 text-center text-xs text-zinc-500 bg-zinc-900/50 rounded-2xl border border-zinc-800/80">
+          <div class="p-6 text-center text-sm text-zinc-500 bg-zinc-900/50 rounded-2xl border border-zinc-800/80">
             本月尚無任何支出記錄
           </div>
         `;
@@ -2011,9 +2011,9 @@
         const subCatsList = Object.values(cat.subCats).sort((a, b) => b.total - a.total);
         const subCatsHtml = subCatsList.map(sub => {
           return `
-            <div class="flex items-center justify-between py-1.5 px-3 rounded-xl bg-zinc-950/70 border border-zinc-800/80 text-xs">
+            <div class="flex items-center justify-between py-1.5 px-3 rounded-xl bg-zinc-950/70 border border-zinc-800/80 text-sm">
               <span class="text-zinc-300 font-medium">${sub.name}</span>
-              <span class="font-mono font-bold text-zinc-100">NT$ ${sub.total.toLocaleString()}</span>
+              <span class="font-mono font-bold text-zinc-100">$ ${sub.total.toLocaleString()}</span>
             </div>
           `;
         }).join('');
@@ -2023,15 +2023,15 @@
             <!-- 主分類列：分類名稱 | 佔比 | 金額 -->
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2.5 min-w-0">
-                <div class="w-8 h-8 rounded-xl bg-zinc-800/80 flex items-center justify-center p-1.5 border border-zinc-700/50 flex-shrink-0">
-                  <img src="${cat.icon}" class="w-full h-full object-contain" onerror="this.src='asset/category/other.png'">
+                <div class="w-9 h-9 rounded-xl bg-zinc-800/80 flex items-center justify-center p-1.5 border border-zinc-700/50 flex-shrink-0">
+                  <img src="${cat.icon}" class="w-6 h-6 object-contain" onerror="this.src='asset/category/other.png'">
                 </div>
                 <span class="text-sm font-bold text-zinc-100 truncate">${cat.name}</span>
               </div>
 
               <div class="flex items-center gap-3 flex-shrink-0">
-                <span class="text-xs font-mono font-semibold text-zinc-400">${pct}%</span>
-                <span class="text-sm font-mono font-bold text-amber-400">NT$ ${cat.total.toLocaleString()}</span>
+                <span class="text-sm font-mono font-semibold text-zinc-400">${pct}%</span>
+                <span class="text-sm font-mono font-bold text-amber-400">$ ${cat.total.toLocaleString()}</span>
                 <i data-lucide="${isExpanded ? 'chevron-up' : 'chevron-down'}" class="w-4 h-4 text-zinc-500"></i>
               </div>
             </div>
@@ -2039,8 +2039,8 @@
             <!-- 點選展開子分類金額區塊 -->
             ${isExpanded ? `
               <div class="mt-3 pt-2.5 border-t border-zinc-800 space-y-1.5" onclick="event.stopPropagation()">
-                <div class="text-[11px] font-bold text-zinc-400 px-1 mb-1">子分類支出明細：</div>
-                ${subCatsHtml || '<div class="text-xs text-zinc-500 text-center py-2">無子分類支出紀錄</div>'}
+                <div class="text-sm font-bold text-zinc-400 px-1 mb-1">子分類支出明細：</div>
+                ${subCatsHtml || '<div class="text-sm text-zinc-500 text-center py-2">無子分類支出紀錄</div>'}
               </div>
             ` : ''}
           </div>
@@ -2109,12 +2109,12 @@
       const annualPieTotalEl = document.getElementById('report-annual-pie-total');
       const annualPieBalEl = document.getElementById('report-annual-pie-balance');
 
-      if (yearExpEl) yearExpEl.textContent = `NT$ ${totalYearExp.toLocaleString()}`;
-      if (yearIncEl) yearIncEl.textContent = `NT$ ${totalYearInc.toLocaleString()}`;
-      if (yearBalEl) yearBalEl.textContent = `NT$ ${totalYearBal.toLocaleString()}`;
-      if (annualPieTotalEl) annualPieTotalEl.textContent = `NT$ ${totalYearExp.toLocaleString()}`;
+      if (yearExpEl) yearExpEl.textContent = `$ ${totalYearExp.toLocaleString()}`;
+      if (yearIncEl) yearIncEl.textContent = `$ ${totalYearInc.toLocaleString()}`;
+      if (yearBalEl) yearBalEl.textContent = `$ ${totalYearBal.toLocaleString()}`;
+      if (annualPieTotalEl) annualPieTotalEl.textContent = `$ ${totalYearExp.toLocaleString()}`;
       if (annualPieBalEl) {
-        annualPieBalEl.textContent = `NT$ ${totalYearBal.toLocaleString()}`;
+        annualPieBalEl.textContent = `$ ${totalYearBal.toLocaleString()}`;
         annualPieBalEl.className = totalYearBal >= 0 ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold';
       }
 
@@ -2128,18 +2128,18 @@
 
       if (btnExp) {
         btnExp.className = metric === 'expense'
-          ? 'px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all bg-amber-500 text-zinc-950 shadow'
-          : 'px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all text-zinc-400 hover:text-zinc-200';
+          ? 'px-2.5 py-1 rounded-lg text-sm font-bold transition-all bg-amber-500 text-zinc-950 shadow'
+          : 'px-2.5 py-1 rounded-lg text-sm font-bold transition-all text-zinc-400 hover:text-zinc-200';
       }
       if (btnInc) {
         btnInc.className = metric === 'income'
-          ? 'px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all bg-emerald-500 text-zinc-950 shadow'
-          : 'px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all text-zinc-400 hover:text-zinc-200';
+          ? 'px-2.5 py-1 rounded-lg text-sm font-bold transition-all bg-emerald-500 text-zinc-950 shadow'
+          : 'px-2.5 py-1 rounded-lg text-sm font-bold transition-all text-zinc-400 hover:text-zinc-200';
       }
       if (btnBal) {
         btnBal.className = metric === 'balance'
-          ? 'px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all bg-blue-500 text-zinc-950 shadow'
-          : 'px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all text-zinc-400 hover:text-zinc-200';
+          ? 'px-2.5 py-1 rounded-lg text-sm font-bold transition-all bg-blue-500 text-zinc-950 shadow'
+          : 'px-2.5 py-1 rounded-lg text-sm font-bold transition-all text-zinc-400 hover:text-zinc-200';
       }
 
       let activeLabel = '每月總支出';
@@ -2182,7 +2182,7 @@
             tooltip: {
               callbacks: {
                 label: function(context) {
-                  return ` ${context.dataset.label}: NT$ ${(context.raw || 0).toLocaleString()}`;
+                  return ` ${context.dataset.label}: $ ${(context.raw || 0).toLocaleString()}`;
                 }
               }
             }
@@ -2268,7 +2268,7 @@
                   label: function(context) {
                     const val = context.raw || 0;
                     const pct = totalYearExp > 0 ? ((val / totalYearExp) * 100).toFixed(1) : 0;
-                    return ` ${context.label}: NT$ ${val.toLocaleString()} (${pct}%)`;
+                    return ` ${context.label}: $ ${val.toLocaleString()} (${pct}%)`;
                   }
                 }
               }
@@ -2281,7 +2281,7 @@
       const annualLegendListEl = document.getElementById('report-annual-pie-legend-list');
       if (annualLegendListEl) {
         if (sortedCatEntries.length === 0) {
-          annualLegendListEl.innerHTML = `<div class="text-xs text-zinc-500 py-6 text-center">本年度尚無支出</div>`;
+          annualLegendListEl.innerHTML = `<div class="text-sm text-zinc-500 py-6 text-center">本年度尚無支出</div>`;
         } else {
           annualLegendListEl.innerHTML = sortedCatEntries.map((entry, idx) => {
             const name = entry[0];
@@ -2289,12 +2289,12 @@
             const pct = totalYearExp > 0 ? ((amount / totalYearExp) * 100).toFixed(1) : '0.0';
             const color = colorPalette[idx % colorPalette.length];
             return `
-              <div class="flex items-center text-xs py-0.5 pl-4">
+              <div class="flex items-center text-sm py-0.5 pl-4">
                 <div class="flex items-center gap-1.5 w-[80px] min-w-0 pr-1">
                   <span class="w-2.5 h-2.5 rounded-sm flex-shrink-0" style="background-color: ${color}"></span>
-                  <span class="text-zinc-200 font-medium truncate text-xs" title="${name}">${name}</span>
+                  <span class="text-zinc-200 font-medium truncate text-sm" title="${name}">${name}</span>
                 </div>
-                <span class="font-mono text-zinc-400 font-bold text-xs flex-shrink-0 text-right w-12">${pct}%</span>
+                <span class="font-mono text-zinc-400 font-bold text-sm flex-shrink-0 text-right w-12">${pct}%</span>
               </div>
             `;
           }).join('');
@@ -2324,8 +2324,7 @@
       const containerEl = document.getElementById('report-budget-overspent-container');
       const expandIcon = document.getElementById('report-budget-expand-icon');
 
-      const [year, month] = currentYearMonth.split('-');
-      if (labelEl) labelEl.textContent = `${year}年 ${parseInt(month, 10)}月 預算達成狀況`;
+      if (labelEl) labelEl.textContent = '本月預算達成狀況';
 
       // 查詢當月所有支出
       const monthStart = `${currentYearMonth}-01`;
@@ -2354,8 +2353,8 @@
         totalBudget += (c.budgetMonthly || 0);
       });
 
-      if (spentEl) spentEl.textContent = `NT$ ${totalSpent.toLocaleString()}`;
-      if (totalEl) totalEl.textContent = totalBudget > 0 ? `NT$ ${totalBudget.toLocaleString()}` : '未設預算';
+      if (spentEl) spentEl.textContent = `$ ${totalSpent.toLocaleString()}`;
+      if (totalEl) totalEl.textContent = totalBudget > 0 ? `$ ${totalBudget.toLocaleString()}` : '未設預算';
 
       // 篩選出「超支」的主分類 (budget > 0 且 spent > budget)
       const overspentCats = expenseParents
@@ -2379,23 +2378,23 @@
 
         if (overallPct > 100) {
           if (barEl) barEl.className = 'h-full bg-red-500 rounded-full transition-all duration-300';
-          if (pctEl) pctEl.className = 'text-xs font-mono font-extrabold text-red-400';
+          if (pctEl) pctEl.className = 'text-sm font-mono font-extrabold text-red-400';
           if (remainEl) {
-            remainEl.textContent = `超支 NT$ ${(totalSpent - totalBudget).toLocaleString()}`;
+            remainEl.textContent = `超支 $ ${(totalSpent - totalBudget).toLocaleString()}`;
             remainEl.className = 'text-sm font-bold font-mono text-red-400 mt-0.5';
           }
         } else if (overallPct > 80) {
           if (barEl) barEl.className = 'h-full bg-orange-500 rounded-full transition-all duration-300';
-          if (pctEl) pctEl.className = 'text-xs font-mono font-extrabold text-orange-400';
+          if (pctEl) pctEl.className = 'text-sm font-mono font-extrabold text-orange-400';
           if (remainEl) {
-            remainEl.textContent = `剩餘 NT$ ${(totalBudget - totalSpent).toLocaleString()}`;
+            remainEl.textContent = `剩餘 $ ${(totalBudget - totalSpent).toLocaleString()}`;
             remainEl.className = 'text-sm font-bold font-mono text-orange-400 mt-0.5';
           }
         } else {
           if (barEl) barEl.className = 'h-full bg-emerald-500 rounded-full transition-all duration-300';
-          if (pctEl) pctEl.className = 'text-xs font-mono font-extrabold text-emerald-400';
+          if (pctEl) pctEl.className = 'text-sm font-mono font-extrabold text-emerald-400';
           if (remainEl) {
-            remainEl.textContent = `剩餘 NT$ ${(totalBudget - totalSpent).toLocaleString()}`;
+            remainEl.textContent = `剩餘 $ ${(totalBudget - totalSpent).toLocaleString()}`;
             remainEl.className = 'text-sm font-bold font-mono text-emerald-400 mt-0.5';
           }
         }
@@ -2415,13 +2414,13 @@
       if (tagEl) {
         if (totalBudget === 0) {
           tagEl.textContent = '未設預算';
-          tagEl.className = 'text-[10px] px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 font-medium';
+          tagEl.className = 'text-sm px-2.5 py-0.5 rounded-full bg-zinc-800 text-zinc-400 font-medium';
         } else if (overspentCats.length > 0) {
-          tagEl.textContent = `超支 ${overspentCats.length} 項 (點選查看)`;
-          tagEl.className = 'text-[10px] px-2 py-0.5 rounded-full bg-red-950/80 text-red-400 border border-red-800/80 font-bold';
+          tagEl.textContent = `超支 ${overspentCats.length} 項`;
+          tagEl.className = 'text-sm px-2.5 py-0.5 rounded-full bg-red-950/80 text-red-400 border border-red-800/80 font-bold';
         } else {
           tagEl.textContent = '無超支項目';
-          tagEl.className = 'text-[10px] px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800/80 font-medium';
+          tagEl.className = 'text-sm px-2.5 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800/80 font-medium';
         }
       }
 
@@ -2437,31 +2436,31 @@
       if (overspentListEl) {
         if (overspentCats.length === 0) {
           overspentListEl.innerHTML = `
-            <div class="py-3 px-4 text-center text-xs text-emerald-400 bg-emerald-950/20 border border-emerald-900/40 rounded-xl">
+            <div class="py-3 px-4 text-center text-sm text-emerald-400 bg-emerald-950/20 border border-emerald-900/40 rounded-xl">
               本月各分類支出均在預算內，無任何超支項目！ 🎉
             </div>
           `;
         } else {
           overspentListEl.innerHTML = overspentCats.map(c => {
             return `
-              <div class="p-2.5 bg-zinc-950/80 rounded-xl border border-red-900/50 flex items-center justify-between text-xs">
+              <div class="p-2.5 bg-zinc-950/80 rounded-xl border border-red-900/50 flex items-center justify-between text-sm">
                 <div class="flex items-center gap-2.5 min-w-0">
-                  <div class="w-7 h-7 rounded-lg bg-zinc-800 flex items-center justify-center p-1 border border-zinc-700/50 flex-shrink-0">
-                    <img src="${c.icon}" class="w-full h-full object-contain" onerror="this.src='asset/category/other.png'">
+                  <div class="w-9 h-9 rounded-xl bg-zinc-800 flex items-center justify-center p-1.5 border border-zinc-700/50 flex-shrink-0">
+                    <img src="${c.icon}" class="w-6 h-6 object-contain" onerror="this.src='asset/category/other.png'">
                   </div>
                   <div class="min-w-0">
-                    <div class="text-xs font-bold text-zinc-100 truncate">${c.name}</div>
-                    <div class="text-[10px] text-zinc-400 font-mono mt-0.5">
-                      預算 NT$ ${c.budget.toLocaleString()} / 已花 NT$ ${c.spent.toLocaleString()}
+                    <div class="text-sm font-bold text-zinc-100 truncate">${c.name}</div>
+                    <div class="text-sm text-zinc-400 font-mono mt-0.5">
+                      預算 $ ${c.budget.toLocaleString()} / 已花 $ ${c.spent.toLocaleString()}
                     </div>
                   </div>
                 </div>
 
                 <div class="text-right flex-shrink-0">
-                  <div class="text-xs font-bold font-mono text-red-400">
-                    超支 NT$ ${c.overspent.toLocaleString()}
+                  <div class="text-sm font-bold font-mono text-red-400">
+                    超支 $ ${c.overspent.toLocaleString()}
                   </div>
-                  <div class="text-[10px] font-mono text-red-400/80 mt-0.5 font-bold">
+                  <div class="text-sm font-mono text-red-400/80 mt-0.5 font-bold">
                     ${c.pct}%
                   </div>
                 </div>
@@ -3104,16 +3103,16 @@
       if (badgeEl) {
         if (!state.gasUrl) {
           badgeEl.textContent = '未設定';
-          badgeEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-800 text-zinc-400 border border-zinc-700';
+          badgeEl.className = 'px-2 py-0.5 rounded-full text-xs font-bold bg-zinc-800 text-zinc-400 border border-zinc-700';
         } else if (state.isSyncing) {
           badgeEl.textContent = '同步中';
-          badgeEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-950 text-amber-300 border border-amber-700 animate-pulse';
+          badgeEl.className = 'px-2 py-0.5 rounded-full text-xs font-bold bg-amber-950 text-amber-300 border border-amber-700 animate-pulse';
         } else if (state.hasUnsyncedChanges) {
           badgeEl.textContent = '待同步';
-          badgeEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-yellow-950 text-yellow-300 border border-yellow-700';
+          badgeEl.className = 'px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-950 text-yellow-300 border border-yellow-700';
         } else {
           badgeEl.textContent = '已連線';
-          badgeEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700';
+          badgeEl.className = 'px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-950 text-emerald-300 border border-emerald-700';
         }
       }
       updateSyncIndicator(state.isSyncing ? 'syncing' : (state.hasUnsyncedChanges ? 'dirty' : 'idle'));
@@ -3729,36 +3728,36 @@
 
         return `
           <div class="p-3 bg-zinc-900 hover:bg-zinc-800/70 active:bg-zinc-800 rounded-2xl border border-zinc-800 transition-all cursor-pointer space-y-2 select-none" onclick="applyTemplate(${t.id})">
-            <div class="flex items-center justify-between pb-1 border-b border-zinc-800/80">
-              <div class="flex items-center gap-2">
-                <div class="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center flex-shrink-0">
-                  <img src="${pCat?.icon || 'asset/categories-food.svg'}" class="w-4 h-4 object-contain">
+            <div class="flex items-center justify-between pb-1.5 border-b border-zinc-800/80">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center flex-shrink-0">
+                  <img src="${pCat?.icon || 'asset/categories-food.svg'}" class="w-6 h-6 object-contain">
                 </div>
-                <div>
-                  <div class="text-sm font-bold text-zinc-100">${t.name}</div>
-                  <div class="text-xs text-zinc-400">${catName}</div>
+                <div class="min-w-0">
+                  <div class="text-sm font-bold text-zinc-100 truncate">${t.name}</div>
+                  <div class="text-xs text-zinc-400 truncate">${catName}</div>
                 </div>
               </div>
-              <div class="flex items-center gap-1.5" onclick="event.stopPropagation()">
+              <div class="flex items-center gap-1.5 shrink-0 ml-2" onclick="event.stopPropagation()">
                 <button onclick="openTemplateFormModal(${t.id})" class="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-amber-400" title="編輯模板">
-                  <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                  <i data-lucide="edit-3" class="w-4 h-4"></i>
                 </button>
                 <button onclick="confirmDeleteTemplate(${t.id})" class="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-red-400" title="刪除模板">
-                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
                 </button>
               </div>
             </div>
 
-            <div class="flex items-center justify-between text-xs pt-0.5">
-              <div class="flex items-center gap-2 text-zinc-400">
-                <span class="flex items-center gap-1 px-2 py-0.5 rounded-md bg-zinc-800 border border-zinc-700/60">
-                  <i data-lucide="wallet" class="w-3 h-3 text-zinc-400"></i>
+            <div class="flex items-center justify-between pt-0.5">
+              <div class="flex items-center gap-2 text-xs text-zinc-400 min-w-0">
+                <span class="flex items-center gap-1 px-2 py-0.5 rounded-md bg-zinc-800 border border-zinc-700/60 shrink-0">
+                  <i data-lucide="wallet" class="w-3.5 h-3.5 text-zinc-400"></i>
                   ${accName}
                 </span>
-                ${t.note ? `<span class="truncate max-w-[120px] text-zinc-400">備註: ${t.note}</span>` : ''}
+                ${t.note ? `<span class="truncate text-xs text-zinc-400">備註: ${t.note}</span>` : ''}
               </div>
-              <div class="font-mono font-bold text-amber-400">
-                ${t.defaultAmount > 0 ? `NT$ ${t.defaultAmount.toLocaleString()}` : '<span class="text-zinc-500 text-xs font-normal">每次輸入金額</span>'}
+              <div class="font-mono font-bold text-sm text-amber-400 shrink-0 ml-2">
+                ${t.defaultAmount > 0 ? `$ ${t.defaultAmount.toLocaleString()}` : '<span class="text-zinc-500 text-xs font-normal">每次輸入金額</span>'}
               </div>
             </div>
           </div>

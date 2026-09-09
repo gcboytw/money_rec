@@ -677,9 +677,9 @@
 
   <!-- Modal 10: Reports & Statistics Modal (Phase 4 升級版) -->
   <div id="reports-modal" class="fixed inset-0 z-50 hidden flex items-end justify-center bg-black/60 backdrop-blur-sm pt-[max(calc(env(safe-area-inset-top)+14px),32px)]">
-    <div onclick="event.stopPropagation()" class="modal-enter w-full max-w-md bg-[#16161a] rounded-t-3xl border-t border-zinc-700/80 p-4 pb-[max(env(safe-area-inset-bottom),20px)] shadow-2xl flex flex-col max-h-full">
+    <div onclick="event.stopPropagation()" class="modal-enter w-full max-w-md bg-[#16161a] rounded-t-3xl border-t border-zinc-700/80 p-4 pb-[max(env(safe-area-inset-bottom),20px)] shadow-2xl flex flex-col h-full">
       <!-- Modal Header -->
-      <div class="flex items-center justify-between pb-3 border-b border-zinc-800">
+      <div class="flex items-center justify-between pb-3 border-b border-zinc-800 shrink-0">
         <h3 class="text-base font-bold text-zinc-100 flex items-center gap-2">
           <i data-lucide="pie-chart" class="w-5 h-5 text-amber-400"></i>
           統計報表
@@ -690,26 +690,26 @@
       </div>
 
       <!-- Tab 切換器: 月報表 / 年度報表 -->
-      <div class="pt-3 pb-1">
+      <div class="pt-3 pb-1 shrink-0">
         <div class="bg-zinc-900/90 p-1 rounded-xl flex items-center shadow-inner border border-zinc-800">
-          <button id="report-tab-btn-month" onclick="switchReportTab('month')" class="flex-1 py-1.5 rounded-lg text-xs font-bold transition-all bg-amber-500 text-zinc-950 shadow">
+          <button id="report-tab-btn-month" onclick="switchReportTab('month')" class="flex-1 py-1.5 rounded-lg text-sm font-bold transition-all bg-amber-500 text-zinc-950 shadow">
             月報表
           </button>
-          <button id="report-tab-btn-year" onclick="switchReportTab('year')" class="flex-1 py-1.5 rounded-lg text-xs font-bold transition-all text-zinc-400 hover:text-zinc-200">
+          <button id="report-tab-btn-year" onclick="switchReportTab('year')" class="flex-1 py-1.5 rounded-lg text-sm font-bold transition-all text-zinc-400 hover:text-zinc-200">
             年度報表
           </button>
         </div>
       </div>
 
       <!-- 週期切換列 (月/年) -->
-      <div class="py-2 flex items-center justify-between px-1">
+      <div class="py-2 flex items-center justify-between px-1 shrink-0">
         <button onclick="changeReportPeriod(-1)" class="tap-scale p-1.5 rounded-xl bg-zinc-800/90 hover:bg-zinc-700 border border-zinc-700/60 text-zinc-300 flex items-center justify-center">
           <i data-lucide="chevron-left" class="w-4 h-4"></i>
         </button>
         
         <div class="relative cursor-pointer select-none flex items-center gap-1.5" onclick="openReportPeriodPicker()">
           <span id="report-period-label" class="text-sm font-extrabold text-zinc-100 font-mono">2026年 9月</span>
-          <i data-lucide="calendar" class="w-3.5 h-3.5 text-amber-400"></i>
+          <i data-lucide="calendar" class="w-4 h-4 text-amber-400"></i>
           <input type="month" id="report-month-input" onchange="onReportMonthPickerChanged(this.value)" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer">
         </div>
 
@@ -723,12 +723,12 @@
         <div id="report-month-container" class="space-y-4">
           <!-- 頂部資訊與快速匯出按鈕列 -->
           <div class="flex items-center justify-between px-1">
-            <span class="text-xs text-zinc-400 font-medium flex items-center gap-1">
-              <i data-lucide="bar-chart-2" class="w-3.5 h-3.5 text-amber-400"></i>
+            <span class="text-sm text-zinc-400 font-medium flex items-center gap-1.5">
+              <i data-lucide="bar-chart-2" class="w-4 h-4 text-amber-400"></i>
               月度收支統計
             </span>
-            <button onclick="exportCurrentReportMonthXLSX()" class="tap-scale flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-medium">
-              <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
+            <button onclick="exportCurrentReportMonthXLSX()" class="tap-scale flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-sm font-medium">
+              <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
               <span>匯出此月 Excel</span>
             </button>
           </div>
@@ -736,16 +736,16 @@
           <!-- 本月收支小卡 -->
           <div class="grid grid-cols-3 gap-2 text-center p-3 rounded-2xl bg-zinc-900 border border-zinc-800 shadow-sm">
             <div>
-              <div class="text-xs text-zinc-400">本月支出</div>
-              <div id="stat-month-expense" class="text-sm sm:text-base font-bold font-mono text-amber-400 mt-0.5">NT$ 0</div>
+              <div class="text-sm text-zinc-400">本月支出</div>
+              <div id="stat-month-expense" class="text-sm sm:text-base font-bold font-mono text-amber-400 mt-0.5">$ 0</div>
             </div>
             <div>
-              <div class="text-xs text-zinc-400">本月收入</div>
-              <div id="stat-month-income" class="text-sm sm:text-base font-bold font-mono text-emerald-400 mt-0.5">NT$ 0</div>
+              <div class="text-sm text-zinc-400">本月收入</div>
+              <div id="stat-month-income" class="text-sm sm:text-base font-bold font-mono text-emerald-400 mt-0.5">$ 0</div>
             </div>
             <div>
-              <div class="text-xs text-zinc-400">結餘</div>
-              <div id="stat-month-balance" class="text-sm sm:text-base font-bold font-mono text-zinc-200 mt-0.5">NT$ 0</div>
+              <div class="text-sm text-zinc-400">結餘</div>
+              <div id="stat-month-balance" class="text-sm sm:text-base font-bold font-mono text-zinc-200 mt-0.5">$ 0</div>
             </div>
           </div>
 
@@ -764,11 +764,11 @@
             <div id="report-budget-card" onclick="toggleReportBudgetDetail()" class="p-3.5 rounded-2xl bg-zinc-900/90 border border-zinc-800 hover:border-zinc-700 transition shadow-md cursor-pointer select-none">
               <div class="flex items-center justify-between mb-2">
                 <div class="flex items-center gap-2">
-                  <span id="report-budget-month-label" class="text-xs font-bold text-zinc-300">預算達成狀況</span>
-                  <span id="report-budget-status-tag" class="text-[10px] px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 font-medium">點選查看超支</span>
+                  <span id="report-budget-month-label" class="text-sm font-bold text-zinc-300">本月預算達成狀況</span>
+                  <span id="report-budget-status-tag" class="text-sm px-2.5 py-0.5 rounded-full bg-zinc-800 text-zinc-400 font-medium">點選查看超支</span>
                 </div>
                 <div class="flex items-center gap-2">
-                  <span id="report-budget-overall-percent" class="text-xs font-mono font-extrabold text-amber-400">0%</span>
+                  <span id="report-budget-overall-percent" class="text-sm font-mono font-extrabold text-amber-400">0%</span>
                   <i id="report-budget-expand-icon" data-lucide="chevron-down" class="w-4 h-4 text-zinc-400 transition-transform"></i>
                 </div>
               </div>
@@ -779,27 +779,27 @@
 
               <div class="grid grid-cols-3 gap-2 text-center pt-2 border-t border-zinc-800/80">
                 <div>
-                  <div class="text-xs text-zinc-400">已花費</div>
-                  <div id="report-budget-overall-spent" class="text-sm font-bold font-mono text-zinc-100 mt-0.5">NT$ 0</div>
+                  <div class="text-sm text-zinc-400">已花費</div>
+                  <div id="report-budget-overall-spent" class="text-sm font-bold font-mono text-zinc-100 mt-0.5">$ 0</div>
                 </div>
                 <div>
-                  <div class="text-xs text-zinc-400">總預算</div>
-                  <div id="report-budget-overall-total" class="text-sm font-bold font-mono text-amber-400 mt-0.5">NT$ 0</div>
+                  <div class="text-sm text-zinc-400">總預算</div>
+                  <div id="report-budget-overall-total" class="text-sm font-bold font-mono text-amber-400 mt-0.5">$ 0</div>
                 </div>
                 <div>
-                  <div class="text-xs text-zinc-400">剩餘預算</div>
-                  <div id="report-budget-overall-remaining" class="text-sm font-bold font-mono text-emerald-400 mt-0.5">NT$ 0</div>
+                  <div class="text-sm text-zinc-400">剩餘預算</div>
+                  <div id="report-budget-overall-remaining" class="text-sm font-bold font-mono text-emerald-400 mt-0.5">$ 0</div>
                 </div>
               </div>
 
               <!-- 點選展開超支分類區塊 -->
               <div id="report-budget-overspent-container" class="mt-3 pt-3 border-t border-zinc-800 hidden space-y-2" onclick="event.stopPropagation()">
-                <div class="flex items-center justify-between text-[11px] font-bold text-zinc-400 px-1 mb-1">
+                <div class="flex items-center justify-between text-sm font-bold text-zinc-400 px-1 mb-1">
                   <span class="flex items-center gap-1 text-red-400">
-                    <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+                    <i data-lucide="alert-triangle" class="w-4 h-4"></i>
                     超支分類明細
                   </span>
-                  <span class="text-[10px] text-zinc-500 font-normal">僅列出超支項目</span>
+                  <span class="text-sm text-zinc-500 font-normal">僅列出超支項目</span>
                 </div>
                 <div id="report-budget-overspent-list" class="space-y-2">
                   <!-- Dynamically populated in js -->
@@ -811,11 +811,11 @@
           <!-- 每月各分類支出總計排行 (含點選展開子分類) -->
           <div class="space-y-2.5 pt-1 border-t border-zinc-800/80">
             <div class="flex items-center justify-between px-1">
-              <span class="text-xs font-bold text-zinc-200 flex items-center gap-1.5">
-                <i data-lucide="layers" class="w-3.5 h-3.5 text-amber-400"></i>
+              <span class="text-sm font-bold text-zinc-200 flex items-center gap-1.5">
+                <i data-lucide="layers" class="w-4 h-4 text-amber-400"></i>
                 各分類支出排行與總計
               </span>
-              <span class="text-[11px] text-zinc-500">點選可查看子分類</span>
+              <span class="text-sm text-zinc-500">點選可查看子分類</span>
             </div>
 
             <!-- 動態生成分類排行列表 -->
@@ -830,35 +830,35 @@
           <!-- 年度收支總計小卡 -->
           <div class="grid grid-cols-3 gap-2 text-center p-3 rounded-2xl bg-zinc-900 border border-zinc-800 shadow-sm">
             <div>
-              <div class="text-xs text-zinc-400">年度總支出</div>
-              <div id="stat-year-expense" class="text-sm sm:text-base font-bold font-mono text-amber-400 mt-0.5">NT$ 0</div>
+              <div class="text-sm text-zinc-400">年度總支出</div>
+              <div id="stat-year-expense" class="text-sm sm:text-base font-bold font-mono text-amber-400 mt-0.5">$ 0</div>
             </div>
             <div>
-              <div class="text-xs text-zinc-400">年度總收入</div>
-              <div id="stat-year-income" class="text-sm sm:text-base font-bold font-mono text-emerald-400 mt-0.5">NT$ 0</div>
+              <div class="text-sm text-zinc-400">年度總收入</div>
+              <div id="stat-year-income" class="text-sm sm:text-base font-bold font-mono text-emerald-400 mt-0.5">$ 0</div>
             </div>
             <div>
-              <div class="text-xs text-zinc-400">年度結餘</div>
-              <div id="stat-year-balance" class="text-sm sm:text-base font-bold font-mono text-zinc-200 mt-0.5">NT$ 0</div>
+              <div class="text-sm text-zinc-400">年度結餘</div>
+              <div id="stat-year-balance" class="text-sm sm:text-base font-bold font-mono text-zinc-200 mt-0.5">$ 0</div>
             </div>
           </div>
 
           <!-- 每月趨勢長條圖 (單一項目切換: 預設總支出，可切換總收入、每月結餘) -->
           <div class="p-3.5 rounded-2xl bg-zinc-900/70 border border-zinc-800 shadow-sm space-y-2.5">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-bold text-zinc-200 flex items-center gap-1.5">
-                <i data-lucide="bar-chart-2" class="w-3.5 h-3.5 text-blue-400"></i>
+            <div class="flex items-center justify-between flex-wrap gap-1.5">
+              <span class="text-sm font-bold text-zinc-200 flex items-center gap-1.5">
+                <i data-lucide="bar-chart-2" class="w-4 h-4 text-blue-400"></i>
                 年度每月趨勢 (1~12月)
               </span>
               <!-- 切換項目 Segmented Control -->
               <div class="bg-zinc-950 p-0.5 rounded-xl flex items-center border border-zinc-800/80">
-                <button id="annual-bar-tab-expense" onclick="switchAnnualBarMetric('expense')" class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all bg-amber-500 text-zinc-950 shadow">
+                <button id="annual-bar-tab-expense" onclick="switchAnnualBarMetric('expense')" class="px-2.5 py-1 rounded-lg text-sm font-bold transition-all bg-amber-500 text-zinc-950 shadow">
                   總支出
                 </button>
-                <button id="annual-bar-tab-income" onclick="switchAnnualBarMetric('income')" class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all text-zinc-400 hover:text-zinc-200">
+                <button id="annual-bar-tab-income" onclick="switchAnnualBarMetric('income')" class="px-2.5 py-1 rounded-lg text-sm font-bold transition-all text-zinc-400 hover:text-zinc-200">
                   總收入
                 </button>
-                <button id="annual-bar-tab-balance" onclick="switchAnnualBarMetric('balance')" class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all text-zinc-400 hover:text-zinc-200">
+                <button id="annual-bar-tab-balance" onclick="switchAnnualBarMetric('balance')" class="px-2.5 py-1 rounded-lg text-sm font-bold transition-all text-zinc-400 hover:text-zinc-200">
                   每月結餘
                 </button>
               </div>
@@ -871,13 +871,13 @@
           <!-- 年度分類支出圓餅圖 (左右呈現，名稱為年度支出佔比，總支出與總結餘換行) -->
           <div class="p-3.5 rounded-2xl bg-zinc-900/70 border border-zinc-800 shadow-sm space-y-2.5">
             <div class="flex items-center justify-between">
-              <span class="text-xs font-bold text-zinc-200 flex items-center gap-1.5">
-                <i data-lucide="pie-chart" class="w-3.5 h-3.5 text-amber-400"></i>
+              <span class="text-sm font-bold text-zinc-200 flex items-center gap-1.5">
+                <i data-lucide="pie-chart" class="w-4 h-4 text-amber-400"></i>
                 年度支出佔比
               </span>
-              <div class="flex flex-col items-end gap-0.5 text-xs font-mono">
-                <span class="text-zinc-400">總支出: <strong id="report-annual-pie-total" class="text-amber-400 font-bold">NT$ 0</strong></span>
-                <span class="text-zinc-400">總結餘: <strong id="report-annual-pie-balance" class="text-zinc-200 font-bold">NT$ 0</strong></span>
+              <div class="flex flex-col items-end gap-0.5 text-sm font-mono">
+                <span class="text-zinc-400">總支出: <strong id="report-annual-pie-total" class="text-amber-400 font-bold">$ 0</strong></span>
+                <span class="text-zinc-400">總結餘: <strong id="report-annual-pie-balance" class="text-zinc-200 font-bold">$ 0</strong></span>
               </div>
             </div>
 
@@ -898,8 +898,8 @@
 
   <!-- Modal 11: Backup & Export Modal -->
   <div id="backup-modal" class="fixed inset-0 z-50 hidden flex items-end justify-center bg-black/60 backdrop-blur-sm pt-[max(calc(env(safe-area-inset-top)+14px),32px)]">
-    <div onclick="event.stopPropagation()" class="modal-enter w-full max-w-md bg-[#16161a] rounded-t-3xl border-t border-zinc-700/80 p-4 pb-[max(env(safe-area-inset-bottom),20px)] shadow-2xl flex flex-col max-h-full">
-      <div class="flex items-center justify-between pb-3 border-b border-zinc-800">
+    <div onclick="event.stopPropagation()" class="modal-enter w-full max-w-md bg-[#16161a] rounded-t-3xl border-t border-zinc-700/80 p-4 pb-[max(env(safe-area-inset-bottom),20px)] shadow-2xl flex flex-col h-full">
+      <div class="flex items-center justify-between pb-3 border-b border-zinc-800 shrink-0">
         <h3 class="text-base font-bold text-zinc-100 flex items-center gap-2">
           <i data-lucide="download-cloud" class="w-5 h-5 text-amber-400"></i>
           資料匯出與備份
@@ -909,7 +909,7 @@
         </button>
       </div>
 
-      <div class="py-3 space-y-3 overflow-y-auto custom-scroll">
+      <div class="flex-1 py-3 space-y-3 overflow-y-auto custom-scroll">
         <!-- Google Drive / GAS 雲端自動同步 -->
         <div class="p-4 bg-gradient-to-b from-zinc-900 to-zinc-900/90 rounded-2xl border border-amber-500/30 space-y-3 shadow-lg">
           <div class="flex items-center justify-between">
@@ -919,26 +919,26 @@
               </div>
               <div>
                 <h4 class="text-sm font-bold text-zinc-100">Google Drive 雲端備份</h4>
-                <div id="gas-sync-last-time" class="text-[11px] text-zinc-400">尚未同步</div>
+                <div id="gas-sync-last-time" class="text-xs text-zinc-400">尚未同步</div>
               </div>
             </div>
-            <span id="gas-sync-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-800 text-zinc-400 border border-zinc-700">未設定</span>
+            <span id="gas-sync-badge" class="px-2 py-0.5 rounded-full text-xs font-bold bg-zinc-800 text-zinc-400 border border-zinc-700">未設定</span>
           </div>
 
           <!-- GAS Web App URL 輸入框 -->
           <div>
             <label class="text-xs font-semibold text-zinc-400 block mb-1">Google Apps Script 網頁應用程式網址</label>
             <div class="flex items-center gap-1.5">
-              <input type="url" id="gas-sync-url" placeholder="https://script.google.com/macros/s/.../exec" onchange="saveGasSettings()" class="flex-1 bg-zinc-950 border border-zinc-700/80 rounded-xl px-3 py-1.5 text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-amber-500">
-              <button onclick="saveGasSettings(true)" class="px-2.5 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold border border-zinc-700 tap-scale">儲存</button>
+              <input type="url" id="gas-sync-url" placeholder="https://script.google.com/macros/s/.../exec" onchange="saveGasSettings()" class="flex-1 bg-zinc-950 border border-zinc-700/80 rounded-xl px-3 py-2 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-amber-500">
+              <button onclick="saveGasSettings(true)" class="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-bold border border-zinc-700 tap-scale">儲存</button>
             </div>
           </div>
 
           <!-- 自動同步切換開關 -->
           <div class="flex items-center justify-between py-1 border-t border-zinc-800/80">
             <div>
-              <div class="text-xs font-bold text-zinc-200">記帳後背景自動備份</div>
-              <div class="text-[10px] text-zinc-400">異動後防抖 8 秒自動上傳至 Google Drive</div>
+              <div class="text-sm font-bold text-zinc-200">記帳後背景自動備份</div>
+              <div class="text-xs text-zinc-400">異動後防抖 8 秒自動上傳至 Google Drive</div>
             </div>
             <label class="relative inline-flex items-center cursor-pointer">
               <input type="checkbox" id="gas-sync-auto" onchange="saveGasSettings()" class="sr-only peer">
@@ -948,11 +948,11 @@
 
           <!-- 動作按鈕：立即上傳 / 從雲端還原 -->
           <div class="grid grid-cols-2 gap-2 pt-1 border-t border-zinc-800/80">
-            <button id="btn-gas-sync-now" onclick="triggerGasSync(true)" class="py-2 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow tap-scale">
+            <button id="btn-gas-sync-now" onclick="triggerGasSync(true)" class="py-2.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-sm flex items-center justify-center gap-1.5 shadow tap-scale">
               <i id="icon-gas-sync-now" data-lucide="upload-cloud" class="w-4 h-4"></i>
               <span id="text-gas-sync-now">立即上傳備份</span>
             </button>
-            <button id="btn-gas-restore-now" onclick="restoreFromGas()" class="py-2 px-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold text-xs border border-zinc-700 flex items-center justify-center gap-1.5 tap-scale">
+            <button id="btn-gas-restore-now" onclick="restoreFromGas()" class="py-2.5 px-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold text-sm border border-zinc-700 flex items-center justify-center gap-1.5 tap-scale">
               <i id="icon-gas-restore-now" data-lucide="cloud-download" class="w-4 h-4 text-sky-400"></i>
               <span id="text-gas-restore-now">從雲端還原</span>
             </button>
@@ -964,19 +964,19 @@
           <div class="flex items-center justify-between">
             <div>
               <div class="text-sm font-bold text-zinc-200 flex items-center gap-1.5">
-                <span class="px-1.5 py-0.5 rounded bg-emerald-950 border border-emerald-700/50 text-[10px] font-mono text-emerald-300 font-bold">XLSX</span>
+                <span class="px-1.5 py-0.5 rounded bg-emerald-950 border border-emerald-700/50 text-xs font-mono text-emerald-300 font-bold">XLSX</span>
                 匯出 Excel 試算表
               </div>
               <div class="text-xs text-zinc-400 mt-0.5">以月份為單位匯出收支明細（含日期、分類、帳戶與備註）</div>
             </div>
-            <span class="text-[11px] text-zinc-500 font-mono">1次匯出1個月</span>
+            <span class="text-xs text-zinc-500 font-mono">1次匯出1個月</span>
           </div>
           <div class="flex items-center gap-2 pt-1 border-t border-zinc-800/80">
             <div class="relative flex-1">
-              <input type="month" id="export-xlsx-month" class="w-full bg-zinc-950 border border-zinc-700/80 rounded-xl px-3 py-1.5 text-xs text-zinc-200 font-mono focus:outline-none focus:border-emerald-500">
+              <input type="month" id="export-xlsx-month" class="w-full bg-zinc-950 border border-zinc-700/80 rounded-xl px-3 py-2 text-sm text-zinc-200 font-mono focus:outline-none focus:border-emerald-500">
             </div>
-            <button onclick="exportXLSXRecords()" class="px-4 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs shadow tap-scale flex items-center gap-1.5 shrink-0">
-              <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
+            <button onclick="exportXLSXRecords()" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm shadow tap-scale flex items-center gap-1.5 shrink-0">
+              <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
               <span>匯出</span>
             </button>
           </div>
@@ -986,12 +986,12 @@
         <div class="p-3.5 bg-zinc-900 rounded-2xl border border-zinc-800 flex items-center justify-between">
           <div>
             <div class="text-sm font-bold text-zinc-200 flex items-center gap-1.5">
-              <span class="px-1.5 py-0.5 rounded bg-amber-950 border border-amber-700/50 text-[10px] font-mono text-amber-300 font-bold">JSON</span>
+              <span class="px-1.5 py-0.5 rounded bg-amber-950 border border-amber-700/50 text-xs font-mono text-amber-300 font-bold">JSON</span>
               匯出完整資料庫備份
             </div>
             <div class="text-xs text-zinc-400 mt-0.5">帳戶、分類、記帳、排程與模板完整備份</div>
           </div>
-          <button onclick="exportJSONBackup()" class="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs shadow tap-scale">
+          <button onclick="exportJSONBackup()" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-sm shadow tap-scale">
             匯出
           </button>
         </div>
@@ -1002,7 +1002,7 @@
             <div class="text-sm font-bold text-zinc-200">還原 JSON 備份檔</div>
             <div class="text-xs text-zinc-400 mt-0.5">支援「完整覆蓋」或「合併匯入」兩種模式</div>
           </div>
-          <label class="px-3.5 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold text-xs cursor-pointer border border-zinc-700 shadow tap-scale">
+          <label class="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold text-sm cursor-pointer border border-zinc-700 shadow tap-scale">
             選擇檔案
             <input type="file" id="json-backup-input" accept=".json" onchange="onImportJSONSelected(event)" class="hidden">
           </label>
@@ -1017,7 +1017,7 @@
             </div>
             <div class="text-xs text-zinc-400 mt-0.5">清除舊快取並重新載入最新 App</div>
           </div>
-          <button onclick="forceUpdateApp()" class="px-3.5 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-amber-400 font-bold text-xs border border-zinc-700 tap-scale">更新</button>
+          <button onclick="forceUpdateApp()" class="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-amber-400 font-bold text-sm border border-zinc-700 tap-scale">更新</button>
         </div>
       </div>
     </div>
@@ -1037,24 +1037,24 @@
 
       <div class="space-y-2.5 pt-1">
         <button onclick="executeJSONImport('overwrite')" class="w-full p-3 rounded-2xl bg-red-950/40 hover:bg-red-900/50 border border-red-800/60 text-left transition tap-scale">
-          <div class="text-xs font-bold text-red-300 flex items-center justify-between">
+          <div class="text-sm font-bold text-red-300 flex items-center justify-between">
             <span>完整覆蓋還原 (全新換機)</span>
-            <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-red-400"></i>
+            <i data-lucide="refresh-cw" class="w-4 h-4 text-red-400"></i>
           </div>
-          <div class="text-[11px] text-zinc-400 mt-0.5">清空現有全部資料，完整還原備份內容</div>
+          <div class="text-xs text-zinc-400 mt-0.5">清空現有全部資料，完整還原備份內容</div>
         </button>
 
         <button onclick="executeJSONImport('merge')" class="w-full p-3 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700/80 text-left transition tap-scale">
-          <div class="text-xs font-bold text-emerald-300 flex items-center justify-between">
+          <div class="text-sm font-bold text-emerald-300 flex items-center justify-between">
             <span>合併匯入 (保留現有)</span>
-            <i data-lucide="git-merge" class="w-3.5 h-3.5 text-emerald-400"></i>
+            <i data-lucide="git-merge" class="w-4 h-4 text-emerald-400"></i>
           </div>
-          <div class="text-[11px] text-zinc-400 mt-0.5">保留現存資料，補齊缺漏的帳戶、分類與新紀錄</div>
+          <div class="text-xs text-zinc-400 mt-0.5">保留現存資料，補齊缺漏的帳戶、分類與新紀錄</div>
         </button>
       </div>
 
       <div class="flex justify-end pt-1">
-        <button onclick="closeImportConfirmModal()" class="px-4 py-1.5 rounded-xl text-xs font-medium text-zinc-400 hover:text-zinc-200">
+        <button onclick="closeImportConfirmModal()" class="px-4 py-1.5 rounded-xl text-sm font-medium text-zinc-400 hover:text-zinc-200">
           取消
         </button>
       </div>
@@ -1176,15 +1176,15 @@
 
   <!-- Modal 15: Expense Templates Management Modal -->
   <div id="template-modal" class="fixed inset-0 z-50 hidden flex items-end justify-center bg-black/60 backdrop-blur-sm pt-[max(calc(env(safe-area-inset-top)+14px),32px)]">
-    <div onclick="event.stopPropagation()" class="modal-enter w-full max-w-md bg-[#16161a] rounded-t-3xl border-t border-zinc-700/80 p-4 pb-[max(env(safe-area-inset-bottom),20px)] shadow-2xl flex flex-col max-h-full">
-      <div class="flex items-center justify-between pb-3 border-b border-zinc-800">
+    <div onclick="event.stopPropagation()" class="modal-enter w-full max-w-md bg-[#16161a] rounded-t-3xl border-t border-zinc-700/80 p-4 pb-[max(env(safe-area-inset-bottom),20px)] shadow-2xl flex flex-col h-full">
+      <div class="flex items-center justify-between pb-3 border-b border-zinc-800 shrink-0">
         <h3 class="text-base font-bold text-zinc-100 flex items-center gap-2">
           <i data-lucide="zap" class="w-5 h-5 text-amber-400"></i>
           常用支出模板
         </h3>
         <div class="flex items-center gap-2">
-          <button onclick="openTemplateFormModal()" class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold flex items-center gap-1 shadow">
-            <i data-lucide="plus" class="w-3.5 h-3.5 stroke-[3]"></i>
+          <button onclick="openTemplateFormModal()" class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 text-sm font-bold flex items-center gap-1.5 shadow">
+            <i data-lucide="plus" class="w-4 h-4 stroke-[3]"></i>
             <span>新增模板</span>
           </button>
           <button onclick="closeTemplateModal()" class="p-1 rounded-full text-zinc-400 hover:text-zinc-200">
@@ -1221,24 +1221,24 @@
       <div class="space-y-2.5">
         <!-- Template Name -->
         <div>
-          <label class="text-xs font-semibold text-zinc-400 block mb-1">模板名稱</label>
+          <label class="text-sm font-semibold text-zinc-400 block mb-1">模板名稱</label>
           <input type="text" id="form-tpl-name" placeholder="例如：加油費用、拿鐵咖啡、午餐便當" class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-3 py-2 text-sm text-zinc-200 focus:outline-none">
         </div>
 
         <!-- Account -->
         <div>
-          <label class="text-xs font-semibold text-zinc-400 block mb-1">付款帳戶</label>
+          <label class="text-sm font-semibold text-zinc-400 block mb-1">付款帳戶</label>
           <select id="form-tpl-account" class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-3 py-2 text-sm text-zinc-200 focus:outline-none"></select>
         </div>
 
         <!-- Category (Parent & Sub) -->
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="text-xs font-semibold text-zinc-400 block mb-1">主分類</label>
+            <label class="text-sm font-semibold text-zinc-400 block mb-1">主分類</label>
             <select id="form-tpl-parent-cat" onchange="onTemplateParentCatChanged(this.value)" class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-2.5 py-2 text-sm text-zinc-200 focus:outline-none"></select>
           </div>
           <div>
-            <label class="text-xs font-semibold text-zinc-400 block mb-1">子分類 (選填)</label>
+            <label class="text-sm font-semibold text-zinc-400 block mb-1">子分類 <span class="text-xs font-normal text-zinc-500">(選填)</span></label>
             <select id="form-tpl-sub-cat" class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-2.5 py-2 text-sm text-zinc-200 focus:outline-none"></select>
           </div>
         </div>
@@ -1246,7 +1246,7 @@
         <!-- Default Amount (Optional) -->
         <div>
           <div class="flex items-center justify-between mb-1">
-            <label class="text-xs font-semibold text-zinc-400 block">預設金額 (NT$)</label>
+            <label class="text-sm font-semibold text-zinc-400 block">預設金額 ($)</label>
             <span class="text-xs text-zinc-500 font-mono">0 表示每次手動敲金額</span>
           </div>
           <input type="number" id="form-tpl-amount" placeholder="0" class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-3 py-2 text-sm font-mono text-zinc-200 focus:outline-none">
@@ -1254,7 +1254,7 @@
 
         <!-- Note (Optional) -->
         <div>
-          <label class="text-xs font-semibold text-zinc-400 block mb-1">預設備註 (選填)</label>
+          <label class="text-sm font-semibold text-zinc-400 block mb-1">預設備註 <span class="text-xs font-normal text-zinc-500">(選填)</span></label>
           <input type="text" id="form-tpl-note" placeholder="例如：95加滿、大杯熱拿鐵" class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-3 py-2 text-sm text-zinc-200 focus:outline-none">
         </div>
       </div>
