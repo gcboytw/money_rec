@@ -430,15 +430,15 @@
 
   <!-- Modal 5: Account Management Full Modal -->
   <div id="account-manage-modal" class="fixed inset-0 z-50 hidden flex items-end justify-center bg-black/60 backdrop-blur-sm pt-[max(calc(env(safe-area-inset-top)+14px),32px)]">
-    <div onclick="event.stopPropagation()" class="modal-enter w-full max-w-md bg-[#16161a] rounded-t-3xl border-t border-zinc-700/80 p-4 pb-[max(env(safe-area-inset-bottom),20px)] shadow-2xl flex flex-col max-h-full">
-      <div class="flex items-center justify-between pb-3 border-b border-zinc-800">
+    <div onclick="event.stopPropagation()" class="modal-enter w-full max-w-md bg-[#16161a] rounded-t-3xl border-t border-zinc-700/80 p-4 pb-[max(env(safe-area-inset-bottom),20px)] shadow-2xl flex flex-col h-full">
+      <div class="flex items-center justify-between pb-3 border-b border-zinc-800 shrink-0">
         <h3 class="text-base font-bold text-zinc-100 flex items-center gap-2">
           <i data-lucide="wallet" class="w-5 h-5 text-amber-400"></i>
           帳戶管理與餘額
         </h3>
         <div class="flex items-center gap-2">
-          <button onclick="openNewAccountForm()" class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold flex items-center gap-1 shadow">
-            <i data-lucide="plus" class="w-3.5 h-3.5 stroke-[3]"></i>
+          <button onclick="openNewAccountForm()" class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 text-sm font-bold flex items-center gap-1.5 shadow">
+            <i data-lucide="plus" class="w-4 h-4 stroke-[3]"></i>
             <span>新增帳戶</span>
           </button>
           <button onclick="closeAccountManageModal()" class="p-1 rounded-full text-zinc-400 hover:text-zinc-200">
@@ -452,15 +452,15 @@
 
   <!-- Modal 6: Category Management Full Modal -->
   <div id="category-manage-modal" class="fixed inset-0 z-50 hidden flex items-end justify-center bg-black/60 backdrop-blur-sm pt-[max(calc(env(safe-area-inset-top)+14px),32px)]">
-    <div onclick="event.stopPropagation()" class="modal-enter w-full max-w-md bg-[#16161a] rounded-t-3xl border-t border-zinc-700/80 p-4 pb-[max(env(safe-area-inset-bottom),20px)] shadow-2xl flex flex-col max-h-full">
-      <div class="flex items-center justify-between pb-3 border-b border-zinc-800">
+    <div onclick="event.stopPropagation()" class="modal-enter w-full max-w-md bg-[#16161a] rounded-t-3xl border-t border-zinc-700/80 p-4 pb-[max(env(safe-area-inset-bottom),20px)] shadow-2xl flex flex-col h-full">
+      <div class="flex items-center justify-between pb-3 border-b border-zinc-800 shrink-0">
         <h3 class="text-base font-bold text-zinc-100 flex items-center gap-2">
           <i data-lucide="grid" class="w-5 h-5 text-amber-400"></i>
           分類與子分類管理
         </h3>
         <div class="flex items-center gap-2">
-          <button onclick="openNewCategoryForm()" class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold flex items-center gap-1 shadow">
-            <i data-lucide="plus" class="w-3.5 h-3.5 stroke-[3]"></i>
+          <button onclick="openNewCategoryForm()" class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 text-sm font-bold flex items-center gap-1.5 shadow">
+            <i data-lucide="plus" class="w-4 h-4 stroke-[3]"></i>
             <span>新增分類</span>
           </button>
           <button onclick="closeCategoryManageModal()" class="p-1 rounded-full text-zinc-400 hover:text-zinc-200">
@@ -469,11 +469,11 @@
         </div>
       </div>
 
-      <div class="flex items-center gap-2 my-2.5 bg-zinc-900 p-1 rounded-xl border border-zinc-800">
-        <button id="cat-manage-tab-exp" onclick="switchCategoryManageType('expense')" class="flex-1 py-1 rounded-lg text-xs font-bold bg-amber-500 text-zinc-950">
+      <div class="flex items-center gap-2 my-2.5 bg-zinc-900 p-1 rounded-xl border border-zinc-800 shrink-0">
+        <button id="cat-manage-tab-exp" onclick="switchCategoryManageType('expense')" class="flex-1 py-1.5 rounded-lg text-sm font-bold bg-amber-500 text-zinc-950">
           支出分類
         </button>
-        <button id="cat-manage-tab-inc" onclick="switchCategoryManageType('income')" class="flex-1 py-1 rounded-lg text-xs font-bold text-zinc-400">
+        <button id="cat-manage-tab-inc" onclick="switchCategoryManageType('income')" class="flex-1 py-1.5 rounded-lg text-sm font-bold text-zinc-400">
           收入分類
         </button>
       </div>
@@ -493,7 +493,7 @@
       <input type="hidden" id="form-account-id" value="">
       <div class="space-y-2.5">
         <div>
-          <label class="text-xs font-semibold text-zinc-400 block mb-1">帳戶群組</label>
+          <label class="text-sm font-semibold text-zinc-400 block mb-1">帳戶群組</label>
           <select id="form-account-group" class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-3 py-2 text-sm text-zinc-200 focus:outline-none">
             <option value="現金">現金</option>
             <option value="銀行">銀行</option>
@@ -501,18 +501,18 @@
           </select>
         </div>
         <div>
-          <label class="text-xs font-semibold text-zinc-400 block mb-1">帳戶名稱</label>
+          <label class="text-sm font-semibold text-zinc-400 block mb-1">帳戶名稱</label>
           <input type="text" id="form-account-name" placeholder="例如：台新 Richart" class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-3 py-2 text-sm text-zinc-200 focus:outline-none">
         </div>
         <div>
           <div class="flex items-center justify-between mb-1">
-            <label class="text-xs font-semibold text-zinc-400 block">初始餘額 (NT$)</label>
-            <span class="text-xs text-amber-400/80 font-mono">可隨時修改初始本金</span>
+            <label class="text-sm font-semibold text-zinc-400 block">初始餘額 (NT$)</label>
+            <span class="text-sm text-amber-400/80 font-mono">可隨時修改初始本金</span>
           </div>
           <input type="number" id="form-account-balance" placeholder="0" class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-3 py-2 text-sm font-mono text-zinc-200 focus:outline-none">
         </div>
         <div>
-          <label class="text-xs font-semibold text-zinc-400 block mb-1">選擇圖示</label>
+          <label class="text-sm font-semibold text-zinc-400 block mb-1">選擇圖示</label>
           <div class="flex gap-2" id="form-account-icons">
             <label class="flex items-center gap-1.5 p-2 bg-zinc-900 rounded-xl border border-zinc-700 cursor-pointer text-xs">
               <input type="radio" name="acc-icon" value="asset/account-dollar.svg" checked>
@@ -549,10 +549,10 @@
 
       <!-- Category Level Switcher (Main vs Sub) -->
       <div id="form-cat-level-row" class="bg-zinc-900 p-1 rounded-xl flex items-center border border-zinc-800">
-        <button type="button" id="form-level-parent" onclick="switchCategoryFormLevel('parent')" class="flex-1 py-1 rounded-lg text-xs font-bold bg-amber-500 text-zinc-950">
+        <button type="button" id="form-level-parent" onclick="switchCategoryFormLevel('parent')" class="flex-1 py-1.5 rounded-lg text-sm font-bold bg-amber-500 text-zinc-950">
           主分類
         </button>
-        <button type="button" id="form-level-sub" onclick="switchCategoryFormLevel('sub')" class="flex-1 py-1 rounded-lg text-xs font-bold text-zinc-400">
+        <button type="button" id="form-level-sub" onclick="switchCategoryFormLevel('sub')" class="flex-1 py-1.5 rounded-lg text-sm font-bold text-zinc-400">
           子分類
         </button>
       </div>
@@ -560,23 +560,23 @@
       <div class="space-y-2.5">
         <!-- Parent Category Selector (Shown only when creating/editing a subcategory) -->
         <div id="form-cat-parent-select-wrap" class="hidden">
-          <label class="text-xs font-semibold text-zinc-400 block mb-1">所屬主分類</label>
+          <label class="text-sm font-semibold text-zinc-400 block mb-1">所屬主分類</label>
           <select id="form-cat-parent-id" class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-3 py-2 text-sm text-zinc-200 focus:outline-none"></select>
         </div>
 
         <div>
-          <label class="text-xs font-semibold text-zinc-400 block mb-1">分類名稱</label>
+          <label class="text-sm font-semibold text-zinc-400 block mb-1">分類名稱</label>
           <input type="text" id="form-cat-name" placeholder="例如：早餐 / 裝備" class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-3 py-2 text-sm text-zinc-200 focus:outline-none">
         </div>
         <div id="form-cat-budget-wrap">
           <div class="flex items-center justify-between mb-1">
-            <label class="text-xs font-semibold text-zinc-400 block">每月預算上限 (NT$)</label>
-            <span class="text-xs text-amber-400/80 font-mono">0 表示不設限</span>
+            <label class="text-sm font-semibold text-zinc-400 block">每月預算上限 (NT$)</label>
+            <span class="text-sm text-amber-400/80 font-mono">0 表示不設限</span>
           </div>
           <input type="number" id="form-cat-budget" placeholder="0" class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-3 py-2 text-sm font-mono text-zinc-200 focus:outline-none">
         </div>
         <div>
-          <label class="text-xs font-semibold text-zinc-400 block mb-1">選擇圖示</label>
+          <label class="text-sm font-semibold text-zinc-400 block mb-1">選擇圖示</label>
           <div id="form-cat-icon-grid" class="grid grid-cols-6 gap-2 max-h-36 overflow-y-auto p-1 bg-zinc-900 rounded-xl border border-zinc-800"></div>
         </div>
       </div>

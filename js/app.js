@@ -1226,8 +1226,8 @@
 
         html += `
           <div class="bg-zinc-900/90 rounded-2xl p-3 border border-zinc-800">
-            <div class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">${grp}</div>
-            <div class="space-y-2">
+            <div class="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-2.5">${grp}</div>
+            <div class="space-y-2.5">
               ${accs.map(acc => {
                 let bal = acc.initialBalance || 0;
                 for (const r of allRecords) {
@@ -1240,28 +1240,31 @@
                 }
 
                 return `
-                  <div class="flex items-center justify-between p-3 rounded-2xl bg-zinc-900 border border-zinc-800/80 ${acc.isArchived ? 'opacity-50' : ''}">
-                    <div class="flex items-center gap-2.5 min-w-0 flex-1">
-                      <img src="${acc.icon}" class="w-5 h-5 object-contain flex-shrink-0">
-                      <div class="min-w-0 flex-1">
-                        <div class="text-sm font-bold text-zinc-200 flex items-center gap-1.5 truncate">
-                          <span>${acc.name}</span>
-                          ${acc.isDefault ? '<span class="text-xs px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded">預設</span>' : ''}
-                          ${acc.isArchived ? '<span class="text-xs px-1.5 py-0.5 bg-zinc-700 text-zinc-400 rounded">已封存</span>' : ''}
-                        </div>
-                        <div class="text-xs text-zinc-400 font-mono mt-0.5">
-                          初始: NT$ ${(acc.initialBalance || 0).toLocaleString()} ｜ 當前餘額: <span class="font-bold text-zinc-200">NT$ ${bal.toLocaleString()}</span>
-                        </div>
+                  <div class="p-3 rounded-2xl bg-zinc-900 border border-zinc-800/80 space-y-2 ${acc.isArchived ? 'opacity-50' : ''}">
+                    <!-- 第一行：icon、帳戶名稱、編輯、封存 -->
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                      <div class="flex items-center gap-2.5 min-w-0">
+                        <img src="${acc.icon}" class="w-6 h-6 object-contain shrink-0">
+                        <span class="text-sm font-bold text-zinc-100 truncate">${acc.name}</span>
+                        ${acc.isDefault ? '<span class="text-sm px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded shrink-0">預設</span>' : ''}
+                        ${acc.isArchived ? '<span class="text-sm px-1.5 py-0.5 bg-zinc-700 text-zinc-400 rounded shrink-0">已封存</span>' : ''}
+                      </div>
+                      <div class="flex items-center gap-1.5 shrink-0 ml-auto">
+                        <button onclick="openEditAccountForm(${acc.id})" class="text-sm px-2.5 py-1 rounded bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 flex items-center gap-1 font-semibold">
+                          <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                          <span>編輯</span>
+                        </button>
+                        <button onclick="toggleArchiveAccount(${acc.id})" class="text-sm px-2.5 py-1 rounded bg-zinc-700 text-zinc-300 hover:bg-zinc-600">
+                          ${acc.isArchived ? '解封' : '封存'}
+                        </button>
                       </div>
                     </div>
-                    <div class="flex items-center gap-1.5 ml-2 flex-shrink-0">
-                      <button onclick="openEditAccountForm(${acc.id})" class="text-xs px-2.5 py-1 rounded bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 flex items-center gap-1 font-semibold">
-                        <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-                        <span>編輯</span>
-                      </button>
-                      <button onclick="toggleArchiveAccount(${acc.id})" class="text-xs px-2.5 py-1 rounded bg-zinc-700 text-zinc-300 hover:bg-zinc-600">
-                        ${acc.isArchived ? '解封' : '封存'}
-                      </button>
+
+                    <!-- 第二行：初始金額、當前餘額金額 -->
+                    <div class="text-sm text-zinc-400 font-mono pl-[34px] flex items-center gap-2 flex-wrap">
+                      <span>初始: NT$ ${(acc.initialBalance || 0).toLocaleString()}</span>
+                      <span class="text-zinc-600">｜</span>
+                      <span>當前餘額: <span class="font-bold text-zinc-100">NT$ ${bal.toLocaleString()}</span></span>
                     </div>
                   </div>
                 `;
@@ -1396,11 +1399,11 @@
       const incTab = document.getElementById('cat-manage-tab-inc');
 
       if (type === 'expense') {
-        expTab.className = 'flex-1 py-1 rounded-lg text-xs font-bold bg-amber-500 text-zinc-950';
-        incTab.className = 'flex-1 py-1 rounded-lg text-xs font-bold text-zinc-400';
+        expTab.className = 'flex-1 py-1.5 rounded-lg text-sm font-bold bg-amber-500 text-zinc-950';
+        incTab.className = 'flex-1 py-1.5 rounded-lg text-sm font-bold text-zinc-400';
       } else {
-        incTab.className = 'flex-1 py-1 rounded-lg text-xs font-bold bg-emerald-500 text-zinc-950';
-        expTab.className = 'flex-1 py-1 rounded-lg text-xs font-bold text-zinc-400';
+        incTab.className = 'flex-1 py-1.5 rounded-lg text-sm font-bold bg-emerald-500 text-zinc-950';
+        expTab.className = 'flex-1 py-1.5 rounded-lg text-sm font-bold text-zinc-400';
       }
       renderCategoryManageList();
     }
@@ -1416,25 +1419,25 @@
 
         return `
           <div class="bg-zinc-900 rounded-2xl p-3 border border-zinc-800 ${p.isArchived ? 'opacity-50' : ''}">
-            <div class="flex items-center justify-between pb-2 border-b border-zinc-800">
-              <div class="flex items-center gap-2">
-                <img src="${p.icon}" class="w-5 h-5 object-contain">
-                <span class="text-xs font-bold text-zinc-200">${p.name}</span>
+            <div class="pb-2.5 border-b border-zinc-800 space-y-2">
+              <div class="flex items-center gap-2 flex-wrap">
+                <img src="${p.icon}" class="w-5 h-5 object-contain shrink-0">
+                <span class="text-sm font-bold text-zinc-200">${p.name}</span>
                 ${p.type === 'expense' ? `
-                  <span class="text-xs px-2 py-0.5 rounded-full ${p.budgetMonthly > 0 ? 'bg-amber-950/60 text-amber-400 border border-amber-800/60' : 'bg-zinc-800 text-zinc-500'} font-mono">
-                    ${p.budgetMonthly > 0 ? `預算 NT$ ${p.budgetMonthly.toLocaleString()}` : '未設預算'}
+                  <span class="text-sm px-2 py-0.5 rounded-full ${p.budgetMonthly > 0 ? 'bg-amber-950/60 text-amber-400 border border-amber-800/60' : 'bg-zinc-800 text-zinc-500'} font-mono">
+                    ${p.budgetMonthly > 0 ? `預算 ${p.budgetMonthly.toLocaleString()}` : '未設預算'}
                   </span>
                 ` : ''}
-                ${p.isArchived ? '<span class="text-xs px-1.5 py-0.5 bg-zinc-700 text-zinc-400 rounded">已封存</span>' : ''}
+                ${p.isArchived ? '<span class="text-sm px-1.5 py-0.5 bg-zinc-700 text-zinc-400 rounded">已封存</span>' : ''}
               </div>
-              <div class="flex items-center gap-1.5">
-                <button onclick="openEditCategoryForm(${p.id})" class="text-xs px-2.5 py-1 rounded bg-zinc-800 text-zinc-300 hover:bg-zinc-700 font-semibold">
+              <div class="flex items-center gap-2">
+                <button onclick="openEditCategoryForm(${p.id})" class="text-sm px-2.5 py-1 rounded bg-zinc-800 text-zinc-300 hover:bg-zinc-700 font-semibold">
                   編輯
                 </button>
-                <button onclick="openNewCategoryForm(${p.id})" class="text-xs px-2.5 py-1 rounded bg-amber-500/20 text-amber-300 font-bold hover:bg-amber-500/30">
+                <button onclick="openNewCategoryForm(${p.id})" class="text-sm px-2.5 py-1 rounded bg-amber-500/20 text-amber-300 font-bold hover:bg-amber-500/30">
                   + 子分類
                 </button>
-                <button onclick="toggleArchiveCategory(${p.id})" class="text-xs px-2.5 py-1 rounded bg-zinc-800 text-zinc-400 hover:bg-zinc-700">
+                <button onclick="toggleArchiveCategory(${p.id})" class="text-sm px-2.5 py-1 rounded bg-zinc-800 text-zinc-400 hover:bg-zinc-700">
                   ${p.isArchived ? '解封' : '封存'}
                 </button>
               </div>
@@ -1442,17 +1445,17 @@
 
             <div class="pt-2 flex flex-wrap gap-1.5">
               ${subs.length > 0 ? subs.map(s => `
-                <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-800 border border-zinc-700/60 text-xs text-zinc-300 ${s.isArchived ? 'opacity-50' : ''}">
-                  <img src="${s.icon}" class="w-3.5 h-3.5 object-contain">
-                  <span>${s.name}</span>
-                  <button onclick="openEditCategoryForm(${s.id})" title="編輯" class="text-zinc-400 hover:text-amber-300 ml-0.5">
-                    <i data-lucide="edit-3" class="w-3 h-3"></i>
+                <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-800 border border-zinc-700/60 text-sm text-zinc-300 ${s.isArchived ? 'opacity-50' : ''}">
+                  <img src="${s.icon}" class="w-4 h-4 object-contain shrink-0">
+                  <span class="break-words">${s.name}</span>
+                  <button onclick="openEditCategoryForm(${s.id})" title="編輯" class="text-zinc-400 hover:text-amber-300 ml-0.5 shrink-0">
+                    <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
                   </button>
-                  <button onclick="toggleArchiveCategory(${s.id})" title="${s.isArchived ? '解封' : '封存'}" class="text-zinc-500 hover:text-red-400 ml-0.5">
-                    <i data-lucide="${s.isArchived ? 'rotate-ccw' : 'x'}" class="w-3 h-3"></i>
+                  <button onclick="toggleArchiveCategory(${s.id})" title="${s.isArchived ? '解封' : '封存'}" class="text-zinc-500 hover:text-red-400 ml-0.5 shrink-0">
+                    <i data-lucide="${s.isArchived ? 'rotate-ccw' : 'x'}" class="w-3.5 h-3.5"></i>
                   </button>
                 </div>
-              `).join('') : '<span class="text-xs text-zinc-500">尚無子分類</span>'}
+              `).join('') : '<span class="text-sm text-zinc-500">尚無子分類</span>'}
             </div>
           </div>
         `;
@@ -1481,8 +1484,8 @@
       const budgetWrap = document.getElementById('form-cat-budget-wrap');
 
       if (level === 'parent') {
-        pBtn.className = 'flex-1 py-1 rounded-lg text-xs font-bold bg-amber-500 text-zinc-950';
-        sBtn.className = 'flex-1 py-1 rounded-lg text-xs font-bold text-zinc-400';
+        pBtn.className = 'flex-1 py-1.5 rounded-lg text-sm font-bold bg-amber-500 text-zinc-950';
+        sBtn.className = 'flex-1 py-1.5 rounded-lg text-sm font-bold text-zinc-400';
         parentSelectWrap.classList.add('hidden');
         if (state.categoryManageType === 'expense') {
           budgetWrap?.classList.remove('hidden');
@@ -1490,8 +1493,8 @@
           budgetWrap?.classList.add('hidden');
         }
       } else {
-        sBtn.className = 'flex-1 py-1 rounded-lg text-xs font-bold bg-amber-500 text-zinc-950';
-        pBtn.className = 'flex-1 py-1 rounded-lg text-xs font-bold text-zinc-400';
+        sBtn.className = 'flex-1 py-1.5 rounded-lg text-sm font-bold bg-amber-500 text-zinc-950';
+        pBtn.className = 'flex-1 py-1.5 rounded-lg text-sm font-bold text-zinc-400';
         parentSelectWrap.classList.remove('hidden');
         budgetWrap?.classList.add('hidden');
       }
