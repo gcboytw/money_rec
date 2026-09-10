@@ -431,12 +431,12 @@
       const amountDisp = document.getElementById('card-display-amount');
       const submitBtn = document.getElementById('btn-quick-submit');
 
-      expBtn.className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all text-zinc-400 hover:text-zinc-200';
-      incBtn.className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all text-zinc-400 hover:text-zinc-200';
-      traBtn.className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all text-zinc-400 hover:text-zinc-200';
+      expBtn.className = 'flex-1 py-1.5 rounded-lg text-base font-semibold tracking-wide transition-all text-zinc-400 hover:text-zinc-200';
+      incBtn.className = 'flex-1 py-1.5 rounded-lg text-base font-semibold tracking-wide transition-all text-zinc-400 hover:text-zinc-200';
+      traBtn.className = 'flex-1 py-1.5 rounded-lg text-base font-semibold tracking-wide transition-all text-zinc-400 hover:text-zinc-200';
 
       if (type === 'expense') {
-        expBtn.className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all bg-amber-500 text-zinc-950 shadow-md';
+        expBtn.className = 'flex-1 py-1.5 rounded-lg text-base font-semibold tracking-wide transition-all bg-amber-500 text-zinc-950 shadow-md';
         stdRow.classList.remove('hidden');
         quickSubCat?.classList.remove('hidden');
         traRow.classList.add('hidden');
@@ -453,7 +453,7 @@
           renderSubCategoryQuickPills();
         }
       } else if (type === 'income') {
-        incBtn.className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all bg-emerald-500 text-zinc-950 shadow-md';
+        incBtn.className = 'flex-1 py-1.5 rounded-lg text-base font-semibold tracking-wide transition-all bg-emerald-500 text-zinc-950 shadow-md';
         stdRow.classList.remove('hidden');
         quickSubCat?.classList.remove('hidden');
         traRow.classList.add('hidden');
@@ -470,7 +470,7 @@
           renderSubCategoryQuickPills();
         }
       } else if (type === 'transfer') {
-        traBtn.className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all bg-blue-500 text-zinc-950 shadow-md';
+        traBtn.className = 'flex-1 py-1.5 rounded-lg text-base font-semibold tracking-wide transition-all bg-blue-500 text-zinc-950 shadow-md';
         stdRow.classList.add('hidden');
         quickSubCat?.classList.add('hidden');
         traRow.classList.remove('hidden');
@@ -556,19 +556,19 @@
       grid.innerHTML = cats.map(cat => {
         const isSelected = state.selectedParentCategory && state.selectedParentCategory.id === cat.id;
         const activeClass = isSelected
-          ? 'bg-amber-500/20 border-amber-500 text-amber-300 ring-2 ring-amber-500/40'
+          ? 'bg-amber-500/20 border-amber-500 text-amber-300'
           : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800';
 
         return `
-          <button onclick="pickParentCategory(${cat.id})" class="tap-scale flex flex-col items-center justify-center p-2 rounded-2xl border ${activeClass} transition-all">
-            <div class="w-10 h-10 rounded-full flex items-center justify-center bg-zinc-800/90 p-2 mb-1 shadow">
-              <img src="${cat.icon}" class="w-6 h-6 object-contain" alt="">
-            </div>
-            <span class="text-xs font-medium truncate w-full text-center">${cat.name}</span>
+          <button onclick="pickParentCategory(${cat.id})" class="tap-scale flex items-center gap-2.5 p-3 rounded-xl border ${activeClass} transition-all">
+            <img src="${cat.icon}" class="w-6 h-6 object-contain flex-shrink-0" alt="">
+            <span class="text-sm font-semibold truncate flex-1 text-left">${cat.name}</span>
+            ${isSelected ? '<i data-lucide="check" class="w-4 h-4 text-amber-400 flex-shrink-0"></i>' : ''}
           </button>
         `;
       }).join('');
 
+      lucide.createIcons();
       document.getElementById('category-modal').classList.remove('hidden');
     }
 
@@ -597,13 +597,13 @@
 
       let html = `
         <button onclick="pickSubCategory(null); closeSubCategoryModal();" class="tap-scale w-full flex items-center justify-between p-3 rounded-xl border ${!state.selectedSubCategory ? 'bg-amber-500/20 border-amber-500 text-amber-300' : 'bg-zinc-900 border-zinc-800 text-zinc-300'}">
-          <span class="text-xs font-semibold">不指定子分類 (歸在主分類)</span>
+          <span class="text-sm font-semibold">不指定子分類 (歸在主分類)</span>
           ${!state.selectedSubCategory ? '<i data-lucide="check" class="w-4 h-4 text-amber-400"></i>' : ''}
         </button>
       `;
 
       if (subCats.length > 0) {
-        html += `<div class="grid grid-cols-2 gap-2 pt-2">`;
+        html += `<div class="grid grid-cols-2 gap-2 pt-2 content-start">`;
         html += subCats.map(sub => {
           const isSelected = state.selectedSubCategory && state.selectedSubCategory.id === sub.id;
           const activeClass = isSelected
@@ -611,17 +611,17 @@
             : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800';
 
           return `
-            <button onclick="pickSubCategory(${sub.id}); closeSubCategoryModal();" class="tap-scale flex items-center gap-2 p-2.5 rounded-xl border ${activeClass}">
-              <img src="${sub.icon}" class="w-4 h-4 object-contain">
-              <span class="text-xs font-semibold truncate flex-1 text-left">${sub.name}</span>
-              ${isSelected ? '<i data-lucide="check" class="w-3.5 h-3.5 text-amber-400"></i>' : ''}
+            <button onclick="pickSubCategory(${sub.id}); closeSubCategoryModal();" class="tap-scale flex items-center gap-2.5 p-3 rounded-xl border ${activeClass}">
+              <img src="${sub.icon}" class="w-6 h-6 object-contain flex-shrink-0">
+              <span class="text-sm font-semibold truncate flex-1 text-left">${sub.name}</span>
+              ${isSelected ? '<i data-lucide="check" class="w-4 h-4 text-amber-400 flex-shrink-0"></i>' : ''}
             </button>
           `;
         }).join('');
         html += `</div>`;
       } else {
         html += `
-          <div class="py-6 text-center text-zinc-500 text-xs">
+          <div class="py-6 text-center text-zinc-500 text-sm">
             此主分類目前沒有子分類
           </div>
         `;
@@ -688,10 +688,10 @@
                   : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800';
 
                 return `
-                  <button onclick="pickAccount(${acc.id})" class="tap-scale flex items-center gap-2 p-2.5 rounded-xl border ${activeStyle} text-left">
-                    <img src="${acc.icon}" class="w-4 h-4 object-contain">
-                    <span class="text-xs font-semibold truncate flex-1">${acc.name}</span>
-                    ${isSelected ? '<i data-lucide="check" class="w-4 h-4 text-amber-400"></i>' : ''}
+                  <button onclick="pickAccount(${acc.id})" class="tap-scale flex items-center gap-2.5 p-3 rounded-xl border ${activeStyle} text-left">
+                    <img src="${acc.icon}" class="w-6 h-6 object-contain flex-shrink-0">
+                    <span class="text-sm font-semibold truncate flex-1">${acc.name}</span>
+                    ${isSelected ? '<i data-lucide="check" class="w-4 h-4 text-amber-400 flex-shrink-0"></i>' : ''}
                   </button>
                 `;
               }).join('')}
@@ -946,8 +946,8 @@
           return `
             <div class="flex items-center justify-between p-3 rounded-2xl bg-zinc-900/80 border border-zinc-800/80 hover:border-zinc-700 transition-all shadow-sm">
               <div class="flex items-center gap-2.5 min-w-0 flex-1 mr-2">
-                <div class="w-9 h-9 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center p-2 flex-shrink-0">
-                  <i data-lucide="arrow-right-left" class="w-5 h-5"></i>
+                <div class="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center flex-shrink-0">
+                  <i data-lucide="arrow-right-left" class="w-[34px] h-[34px]"></i>
                 </div>
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center gap-1.5 text-base font-bold text-zinc-200">
@@ -990,8 +990,8 @@
         return `
           <div class="flex items-center justify-between p-3 rounded-2xl bg-zinc-900/80 border border-zinc-800/80 hover:border-zinc-700 transition-all shadow-sm">
             <div class="flex items-center gap-2.5 min-w-0 flex-1 mr-2">
-              <div class="w-9 h-9 rounded-full bg-zinc-800 flex items-center justify-center p-2 flex-shrink-0 shadow-inner">
-                <img src="${iconSrc}" class="w-5 h-5 object-contain" alt="">
+              <div class="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center flex-shrink-0 shadow-inner">
+                <img src="${iconSrc}" class="w-[34px] h-[34px] object-contain" alt="">
               </div>
               <div class="min-w-0 flex-1">
                 <div class="flex items-center gap-1.5">
@@ -1424,11 +1424,11 @@
                 <img src="${p.icon}" class="w-6 h-6 object-contain shrink-0">
                 <span class="text-sm font-bold text-zinc-200">${p.name}</span>
                 ${p.type === 'expense' ? `
-                  <span class="text-sm px-2 py-0.5 rounded-full ${p.budgetMonthly > 0 ? 'bg-amber-950/60 text-amber-400 border border-amber-800/60' : 'bg-zinc-800 text-zinc-500'} font-mono">
+                  <span class="text-xs px-2 py-0.5 rounded-full ${p.budgetMonthly > 0 ? 'bg-amber-950/60 text-amber-400 border border-amber-800/60' : 'bg-zinc-800 text-zinc-500'} font-mono">
                     ${p.budgetMonthly > 0 ? `預算 $${p.budgetMonthly.toLocaleString()}` : '未設預算'}
                   </span>
                 ` : ''}
-                ${p.isArchived ? '<span class="text-sm px-1.5 py-0.5 bg-zinc-700 text-zinc-400 rounded">已封存</span>' : ''}
+                ${p.isArchived ? '<span class="text-xs px-1.5 py-0.5 bg-zinc-700 text-zinc-400 rounded">已封存</span>' : ''}
               </div>
               <div class="flex items-center gap-2">
                 <button onclick="openEditCategoryForm(${p.id})" class="text-sm px-2.5 py-1 rounded bg-zinc-800 text-zinc-300 hover:bg-zinc-700 font-semibold">
@@ -1534,9 +1534,9 @@
 
       const iconGrid = document.getElementById('form-cat-icon-grid');
       iconGrid.innerHTML = AVAILABLE_ICONS.map((icon, idx) => `
-        <label class="flex items-center justify-center p-2 rounded-lg bg-zinc-800 border border-zinc-700 hover:border-amber-400 cursor-pointer">
+        <label class="flex items-center justify-center p-1.5 rounded-xl bg-zinc-800 border border-zinc-700 hover:border-amber-400 cursor-pointer aspect-square has-[:checked]:border-amber-400 has-[:checked]:bg-amber-500/20 transition-all">
           <input type="radio" name="cat-icon-choice" value="${icon}" class="hidden" ${idx === 0 ? 'checked' : ''}>
-          <img src="${icon}" class="w-6 h-6 object-contain">
+          <img src="${icon}" class="w-[34px] h-[34px] object-contain">
         </label>
       `).join('');
 
@@ -1564,9 +1564,9 @@
 
       const iconGrid = document.getElementById('form-cat-icon-grid');
       iconGrid.innerHTML = AVAILABLE_ICONS.map((icon) => `
-        <label class="flex items-center justify-center p-2 rounded-lg bg-zinc-800 border border-zinc-700 hover:border-amber-400 cursor-pointer">
+        <label class="flex items-center justify-center p-1.5 rounded-xl bg-zinc-800 border border-zinc-700 hover:border-amber-400 cursor-pointer aspect-square has-[:checked]:border-amber-400 has-[:checked]:bg-amber-500/20 transition-all">
           <input type="radio" name="cat-icon-choice" value="${icon}" class="hidden" ${icon === cat.icon ? 'checked' : ''}>
-          <img src="${icon}" class="w-6 h-6 object-contain">
+          <img src="${icon}" class="w-[34px] h-[34px] object-contain">
         </label>
       `).join('');
 
@@ -3464,12 +3464,12 @@
               <div class="flex items-center gap-2">
                 ${typeBadge}
                 <div class="flex items-center gap-1.5">
-                  <img src="${pCat?.icon || 'asset/categories-food.svg'}" class="w-4 h-4 object-contain">
-                  <span class="text-xs font-bold text-zinc-200">${catName}</span>
+                  <img src="${pCat?.icon || 'asset/categories-food.svg'}" class="w-6 h-6 object-contain flex-shrink-0">
+                  <span class="text-sm font-bold text-zinc-200">${catName}</span>
                 </div>
               </div>
               <div class="flex items-center gap-2">
-                <span class="text-sm font-mono font-bold ${isExpense ? 'text-amber-400' : 'text-emerald-400'}">NT$ ${r.amount.toLocaleString()}</span>
+                <span class="text-sm font-mono font-bold ${isExpense ? 'text-amber-400' : 'text-emerald-400'}">$ ${r.amount.toLocaleString()}</span>
                 <!-- Active Toggle Switch -->
                 <button onclick="toggleRecurringActive(${r.id})" class="text-xs px-2 py-0.5 rounded-full ${r.isActive ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-700/60' : 'bg-zinc-800 text-zinc-400'}" title="點擊切換啟用狀態">
                   ${r.isActive ? '啟用中' : '已暫停'}
@@ -3477,15 +3477,15 @@
               </div>
             </div>
 
-            <div class="flex items-center justify-between text-xs text-zinc-400 pt-0.5">
+            <div class="flex items-center justify-between text-sm text-zinc-400 pt-0.5">
               <div class="flex items-center gap-3">
-                <span class="flex items-center gap-1">
-                  <i data-lucide="wallet" class="w-3.5 h-3.5 text-zinc-500"></i>
-                  ${accName}
+                <span class="flex items-center gap-1.5">
+                  <i data-lucide="wallet" class="w-4 h-4 text-zinc-400"></i>
+                  <span class="text-sm text-zinc-300">${accName}</span>
                 </span>
-                <span class="flex items-center gap-1 text-zinc-300">
-                  <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-400"></i>
-                  ${freqLabel}
+                <span class="flex items-center gap-1.5">
+                  <i data-lucide="clock" class="w-4 h-4 text-amber-400"></i>
+                  <span class="text-sm text-zinc-200 font-medium">${freqLabel}</span>
                 </span>
               </div>
               <div class="flex items-center gap-1">
@@ -3525,11 +3525,11 @@
       const incBtn = document.getElementById('form-rec-tab-inc');
 
       if (type === 'expense') {
-        expBtn.className = 'flex-1 py-1 rounded-lg text-xs font-bold bg-amber-500 text-zinc-950';
-        incBtn.className = 'flex-1 py-1 rounded-lg text-xs font-bold text-zinc-400';
+        expBtn.className = 'flex-1 py-1.5 rounded-lg text-sm font-bold bg-amber-500 text-zinc-950';
+        incBtn.className = 'flex-1 py-1.5 rounded-lg text-sm font-bold text-zinc-400';
       } else {
-        incBtn.className = 'flex-1 py-1 rounded-lg text-xs font-bold bg-emerald-500 text-zinc-950';
-        expBtn.className = 'flex-1 py-1 rounded-lg text-xs font-bold text-zinc-400';
+        incBtn.className = 'flex-1 py-1.5 rounded-lg text-sm font-bold bg-emerald-500 text-zinc-950';
+        expBtn.className = 'flex-1 py-1.5 rounded-lg text-sm font-bold text-zinc-400';
       }
 
       populateRecurringCategorySelects();
