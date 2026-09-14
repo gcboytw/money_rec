@@ -986,7 +986,7 @@
         const sign = isExp ? '-' : '+';
         const amountColor = isExp ? 'text-zinc-100' : 'text-emerald-400';
         const iconSrc = subCat?.icon || parentCat?.icon || 'asset/categories-money.svg';
-        const catTitle = subCat ? `${parentCat?.name || ''} · ${subCat.name}` : (parentCat?.name || '未分類');
+        const catTitle = subCat ? subCat.name : (parentCat?.name || '未分類');
 
         return `
           <div class="flex items-center justify-between p-3 rounded-2xl bg-zinc-900/80 border border-zinc-800/80 hover:border-zinc-700 transition-all shadow-sm">
