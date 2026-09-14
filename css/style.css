@@ -61,3 +61,37 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* ========================================================
+   字體大小雙模式控制 (Font Mode Switch)
+   ======================================================== */
+
+/* 精巧模式：全域主要字級縮減約 1~1.5px，確保 iOS 系統放大時不擠壓 */
+html.compact-font .text-sm {
+  font-size: 13px !important;
+  line-height: 1.25 !important;
+}
+
+html.compact-font .text-xs {
+  font-size: 11px !important;
+  line-height: 1.15 !important;
+}
+
+html.compact-font .text-base {
+  font-size: 14.5px !important;
+  line-height: 1.35 !important;
+}
+
+/* 首頁快速記帳支出/收入分段按鈕微調 */
+html.compact-font #tab-expense,
+html.compact-font #tab-income,
+html.compact-font #tab-transfer {
+  font-size: 14.5px !important;
+}
+
+/* 金額與標籤維持間隙 */
+html.compact-font .badge-tag {
+  padding-top: 1px !important;
+  padding-bottom: 1px !important;
+}
+

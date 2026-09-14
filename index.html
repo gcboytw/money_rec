@@ -81,6 +81,13 @@
 
   <!-- 自訂樣式 -->
   <link rel="stylesheet" href="css/style.css">
+  <script>
+    try {
+      if (localStorage.getItem('pocket_ledger_font_mode') === 'compact') {
+        document.documentElement.classList.add('compact-font');
+      }
+    } catch (e) {}
+  </script>
 </head>
 <body class="bg-[#09090b] text-zinc-100 h-full flex flex-col font-sans antialiased overflow-hidden">
 
@@ -910,6 +917,33 @@
       </div>
 
       <div class="flex-1 py-3 space-y-3 overflow-y-auto custom-scroll">
+        <!-- 介面顯示設定卡片 -->
+        <div class="p-3.5 bg-zinc-900/90 rounded-2xl border border-zinc-800 space-y-2.5 shadow-md">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="p-1.5 rounded-lg bg-amber-500/10 text-amber-400">
+                <i data-lucide="type" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <h4 class="text-sm font-bold text-zinc-100">介面字體大小</h4>
+                <div class="text-xs text-zinc-400">若 iOS 系統字體較大，可切換為精巧模式避免擠壓</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 雙選項切換鈕 (Segmented Switch) -->
+          <div class="grid grid-cols-2 p-1 bg-zinc-950 rounded-xl border border-zinc-800 text-center text-xs font-bold gap-1">
+            <button id="font-btn-compact" onclick="setFontMode('compact')" 
+              class="py-2 rounded-lg transition-all text-zinc-400 hover:text-zinc-200">
+              精巧模式 (舒適防擠)
+            </button>
+            <button id="font-btn-spacious" onclick="setFontMode('spacious')" 
+              class="py-2 rounded-lg transition-all bg-amber-500/20 text-amber-400 border border-amber-500/30">
+              清晰放大 (大字醒目)
+            </button>
+          </div>
+        </div>
+
         <!-- Google Drive / GAS 雲端自動同步 -->
         <div class="p-4 bg-gradient-to-b from-zinc-900 to-zinc-900/90 rounded-2xl border border-amber-500/30 space-y-3 shadow-lg">
           <div class="flex items-center justify-between">

@@ -87,6 +87,7 @@
         initGasSyncModule();
         setupDexieChangeHooks();
         setupWeekStripGestures();
+        initFontMode();
         state.isReady = true;
         lucide.createIcons();
       } catch (err) {
@@ -3980,3 +3981,64 @@
     }
 
     window.addEventListener('DOMContentLoaded', initApp);
+
+    // ========================================================
+    // 字體雙模式切換管理 (Font Mode Management)
+    // ========================================================
+
+    const STORAGE_FONT_KEY = 'pocket_ledger_font_mode';
+
+    /**
+     * 初始化載入使用者字體設定
+     */
+    function initFontMode() {
+      const savedMode = localStorage.getItem(STORAGE_FONT_KEY) || 'spacious';
+      applyFontModeUI(savedMode);
+    }
+
+    /**
+     * 設定並切換字體模式
+     * @param {'compact' | 'spacious'} mode 
+     */
+    function setFontMode(mode) {
+      localStorage.setItem(STORAGE_FONT_KEY, mode);
+      applyFontModeUI(mode);
+    }
+
+    /**
+     * 套用字體模式到 DOM 與更新按鈕樣式
+     */
+    function applyFontModeUI(mode) {
+      const root = document.documentElement;
+      const btnCompact = document.getElementById('font-btn-compact');
+      const btnSpacious = document.getElementById('font-btn-spacious');
+
+      const activeClasses = ['bg-amber-500/20', 'text-amber-400', 'border', 'border-amber-500/30'];
+      const inactiveClasses = ['text-zinc-400', 'hover:text-zinc-200'];
+
+      if (mode === 'compact') {
+        root.classList.add('compact-font');
+        if (btnCompact && btnSpacious) {
+          btnCompact.classList.add(...activeClasses);
+          btnCompact.classList.remove(...inactiveClasses);
+          btnSpacious.classList.remove(...activeClasses);
+          btnSpacious.classList.add(...inactiveClasses);
+        }
+      } else {
+        root.classList.remove('compact-font');
+        if (btnCompact && btnSpacious) {
+          btnSpacious.classList.add(...activeClasses);
+          btnSpacious.classList.remove(...inactiveClasses);
+          btnCompact.classList.remove(...activeClasses);
+          btnCompact.classList.add(...inactiveClasses);
+        }
+      }
+    }
+
+    // 掛載至 window 確保全域事件與 inline handler 皆可存取
+    window.initFontMode = initFontMode;
+    window.setFontMode = setFontMode;
+    window.applyFontModeUI = applyFontModeUI;
+
+    // 確保頁面加載時第一時間套用
+    initFontMode();
